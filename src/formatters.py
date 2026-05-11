@@ -8,7 +8,8 @@
 """
 
 import re
-from typing import List
+import unicodedata
+from typing import Any, Dict, List
 
 import markdown2
 
@@ -404,9 +405,9 @@ def format_feishu_markdown(content: str) -> str:
     
     转换规则：
     - 飞书不支持 Markdown 标题（# / ## / ###），用加粗代替
-    - 引用块使用前缀替代
+    - 引用块尽量保留 Markdown 引用语义
     - 分隔线统一为细线
-    - 表格转换为条目列表
+    - 表格转换为等宽文本表，避免字段被拍平成散乱条目
     
     Args:
         content: 原始 Markdown 内容
@@ -419,9 +420,37 @@ def format_feishu_markdown(content: str) -> str:
         >>> formatted = format_feishu_markdown(markdown)
         >>> print(formatted)
         **标题**
-        💬 引用
-        • 列1：值1 | 列2：值2
+        > 引用
+        ```text
+        列1  列2
+        值1  值2
+        ```
     """
+    def _display_width(value: str) -> int:
+        """Return a rough terminal/card display width for mixed CJK text."""
+        width = 0
+        for ch in value:
+            width += 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
+        return width
+
+    def _truncate_to_width(value: str, max_width: int = 18) -> str:
+        if _display_width(value) <= max_width:
+            return value
+        suffix = "..."
+        target = max(1, max_width - len(suffix))
+        chars = []
+        width = 0
+        for ch in value:
+            ch_width = 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
+            if width + ch_width > target:
+                break
+            chars.append(ch)
+            width += ch_width
+        return "".join(chars).rstrip() + suffix
+
+    def _pad_cell(value: str, width: int) -> str:
+        return value + " " * max(0, width - _display_width(value))
+
     def _flush_table_rows(buffer: List[str], output: List[str]) -> None:
         """将表格缓冲区中的行转换为飞书格式"""
         if not buffer:
@@ -430,7 +459,7 @@ def format_feishu_markdown(content: str) -> str:
         def _parse_row(row: str) -> List[str]:
             """解析表格行，提取单元格"""
             cells = [c.strip() for c in row.strip().strip('|').split('|')]
-            return [c for c in cells if c]
+            return cells
 
         rows = []
         for raw in buffer:
@@ -444,14 +473,20 @@ def format_feishu_markdown(content: str) -> str:
         if not rows:
             return
 
-        header = rows[0]
-        data_rows = rows[1:] if len(rows) > 1 else []
-        for row in data_rows:
-            pairs = []
-            for idx, cell in enumerate(row):
-                key = header[idx] if idx < len(header) else f"列{idx + 1}"
-                pairs.append(f"{key}：{cell}")
-            output.append(f"• {' | '.join(pairs)}")
+        max_cols = max(len(row) for row in rows)
+        normalized_rows = [
+            [_truncate_to_width(cell) for cell in (row + [""] * (max_cols - len(row)))]
+            for row in rows
+        ]
+        col_widths = [
+            max(_display_width(row[idx]) for row in normalized_rows)
+            for idx in range(max_cols)
+        ]
+
+        output.append("```")
+        for row in normalized_rows:
+            output.append("  ".join(_pad_cell(cell, col_widths[idx]) for idx, cell in enumerate(row)).rstrip())
+        output.append("```")
 
     lines = []
     table_buffer: List[str] = []
@@ -472,17 +507,20 @@ def format_feishu_markdown(content: str) -> str:
         # 转换标题（# ## ### 等）
         if re.match(r'^#{1,6}\s+', line):
             title = re.sub(r'^#{1,6}\s+', '', line).strip()
+            if lines and lines[-1] != "":
+                lines.append("")
             line = f"**{title}**" if title else ""
         # 转换引用块
         elif line.startswith('> '):
             quote = line[2:].strip()
-            line = f"💬 {quote}" if quote else ""
+            line = f"> {quote}" if quote else ""
         # 转换分隔线
         elif line.strip() == '---':
             line = '────────'
         # 转换列表项
-        elif line.startswith('- '):
-            line = f"• {line[2:].strip()}"
+        elif re.match(r'^\s*[-*]\s+\S', line):
+            item = re.sub(r'^\s*[-*]\s+', '', line).strip()
+            line = f"• {item}"
 
         lines.append(line)
 
@@ -491,6 +529,170 @@ def format_feishu_markdown(content: str) -> str:
         _flush_table_rows(table_buffer, lines)
 
     return "\n".join(lines).strip()
+
+
+def build_feishu_card_elements(content: str) -> List[Dict[str, Any]]:
+    """
+    Build Feishu interactive-card elements from Markdown-like report content.
+
+    Feishu custom bot cards only support a small Markdown subset inside a single
+    ``lark_md`` text block. Tables, fenced code blocks, and blockquotes often
+    appear as literal text. This renderer maps common report Markdown to native
+    card modules so the message is actually rendered in Feishu.
+    """
+
+    def _is_table_separator(row: str) -> bool:
+        return bool(re.match(r'^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$', row))
+
+    def _parse_table_row(row: str) -> List[str]:
+        return [cell.strip() for cell in row.strip().strip("|").split("|")]
+
+    def _text(content_value: str, tag: str = "lark_md") -> Dict[str, str]:
+        return {"tag": tag, "content": content_value}
+
+    def _div(content_value: str, tag: str = "lark_md") -> Dict[str, Any]:
+        return {"tag": "div", "text": _text(content_value, tag)}
+
+    def _normalize_inline(value: str) -> str:
+        value = value.strip()
+        value = re.sub(r'`([^`]+)`', r'\1', value)
+        return value
+
+    def _flush_paragraph(buffer: List[str], output: List[Dict[str, Any]]) -> None:
+        if not buffer:
+            return
+        paragraph = "\n".join(line.strip() for line in buffer if line.strip()).strip()
+        if paragraph:
+            output.append(_div(_normalize_inline(paragraph)))
+        buffer.clear()
+
+    def _build_table(rows: List[List[str]]) -> List[Dict[str, Any]]:
+        if not rows:
+            return []
+
+        max_cols = max(len(row) for row in rows)
+        normalized = [
+            [_normalize_inline(cell) for cell in (row + [""] * (max_cols - len(row)))]
+            for row in rows
+        ]
+        header = normalized[0]
+        data_rows = normalized[1:]
+
+        # Column sets render like compact tables in Feishu cards and avoid
+        # literal Markdown/code fences. Wide tables become unreadable on mobile,
+        # so render them as row summaries instead.
+        if max_cols <= 4:
+            columns = []
+            for idx, title in enumerate(header):
+                col_elements = [_div(f"**{title or '-'}**")]
+                for row in data_rows[:12]:
+                    col_elements.append(_div(row[idx] or "-", tag="plain_text"))
+                columns.append(
+                    {
+                        "tag": "column",
+                        "width": "weighted",
+                        "weight": 1,
+                        "vertical_align": "top",
+                        "elements": col_elements,
+                    }
+                )
+            result: List[Dict[str, Any]] = [{"tag": "column_set", "columns": columns}]
+            if len(data_rows) > 12:
+                result.append(_div(f"还有 {len(data_rows) - 12} 行已省略", tag="plain_text"))
+            return result
+
+        row_elements: List[Dict[str, Any]] = []
+        for row in data_rows[:10]:
+            title = row[0] if row else "-"
+            details = "　".join(
+                f"**{header[idx]}**：{row[idx] or '-'}"
+                for idx in range(1, max_cols)
+                if header[idx] or row[idx]
+            )
+            row_elements.append(_div(f"**{title}**\n{details}".strip()))
+        if len(data_rows) > 10:
+            row_elements.append(_div(f"还有 {len(data_rows) - 10} 行已省略", tag="plain_text"))
+        return row_elements
+
+    def _flush_table(buffer: List[str], output: List[Dict[str, Any]]) -> None:
+        if not buffer:
+            return
+        rows = [_parse_table_row(row) for row in buffer if not _is_table_separator(row)]
+        output.extend(_build_table(rows))
+        buffer.clear()
+
+    elements: List[Dict[str, Any]] = []
+    paragraph_buffer: List[str] = []
+    table_buffer: List[str] = []
+    in_fence = False
+    fence_buffer: List[str] = []
+
+    for raw_line in content.splitlines():
+        line = raw_line.rstrip()
+        stripped = line.strip()
+
+        if stripped.startswith("```"):
+            _flush_paragraph(paragraph_buffer, elements)
+            _flush_table(table_buffer, elements)
+            if in_fence:
+                if fence_buffer:
+                    elements.append(_div("\n".join(fence_buffer), tag="plain_text"))
+                fence_buffer = []
+                in_fence = False
+            else:
+                in_fence = True
+            continue
+
+        if in_fence:
+            fence_buffer.append(line)
+            continue
+
+        if stripped.startswith("|") and "|" in stripped[1:]:
+            _flush_paragraph(paragraph_buffer, elements)
+            table_buffer.append(line)
+            continue
+
+        _flush_table(table_buffer, elements)
+
+        if not stripped:
+            _flush_paragraph(paragraph_buffer, elements)
+            continue
+
+        heading_match = re.match(r'^(#{1,6})\s+(.+)$', stripped)
+        if heading_match:
+            _flush_paragraph(paragraph_buffer, elements)
+            level = len(heading_match.group(1))
+            title = _normalize_inline(heading_match.group(2))
+            if elements and level <= 3:
+                elements.append({"tag": "hr"})
+            elements.append(_div(f"**{title}**"))
+            continue
+
+        if stripped == "---":
+            _flush_paragraph(paragraph_buffer, elements)
+            elements.append({"tag": "hr"})
+            continue
+
+        if stripped.startswith(">"):
+            _flush_paragraph(paragraph_buffer, elements)
+            quote = re.sub(r'^>\s?', '', stripped).strip()
+            if quote:
+                elements.append({"tag": "note", "elements": [_text(_normalize_inline(quote))]})
+            continue
+
+        list_match = re.match(r'^\s*[-*]\s+(.+)$', line)
+        if list_match:
+            paragraph_buffer.append(f"• {_normalize_inline(list_match.group(1))}")
+            continue
+
+        paragraph_buffer.append(_normalize_inline(line))
+
+    _flush_paragraph(paragraph_buffer, elements)
+    _flush_table(table_buffer, elements)
+    if fence_buffer:
+        elements.append(_div("\n".join(fence_buffer), tag="plain_text"))
+
+    return elements or [_div(content.strip() or "-", tag="plain_text")]
 
 
 def _chunk_by_separators(content: str) -> tuple[list[str], str]:

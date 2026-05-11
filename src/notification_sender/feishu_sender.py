@@ -18,6 +18,7 @@ from src.config import Config
 from src.formatters import (
     MIN_MAX_BYTES,
     PAGE_MARKER_SAFE_BYTES,
+    build_feishu_card_elements,
     chunk_content_by_max_bytes,
     format_feishu_markdown,
 )
@@ -115,9 +116,6 @@ class FeishuSender:
             logger.warning("飞书 Webhook 未配置，跳过推送")
             return False
         
-        # 飞书 lark_md 支持有限，先做格式转换
-        formatted_content = format_feishu_markdown(content)
-
         max_bytes = self._feishu_max_bytes  # 从配置读取，默认 20000 字节
         keyword_overhead = len(self._get_keyword_prefix().encode('utf-8'))
         effective_max_bytes = max_bytes - keyword_overhead
@@ -127,7 +125,7 @@ class FeishuSender:
             return False
         
         # 检查字节长度，超长则分批发送
-        content_bytes = len(formatted_content.encode('utf-8')) + keyword_overhead
+        content_bytes = len(content.encode('utf-8')) + keyword_overhead
         if content_bytes > max_bytes:
             min_chunk_bytes = MIN_MAX_BYTES + PAGE_MARKER_SAFE_BYTES
             if effective_max_bytes < min_chunk_bytes:
@@ -138,10 +136,10 @@ class FeishuSender:
                 )
                 return False
             logger.info(f"飞书消息内容超长({content_bytes}字节/{len(content)}字符)，将分批发送")
-            return self._send_feishu_chunked(formatted_content, effective_max_bytes)
+            return self._send_feishu_chunked(content, effective_max_bytes)
         
         try:
-            return self._send_feishu_message(formatted_content, timeout_seconds=timeout_seconds)
+            return self._send_feishu_message(content, timeout_seconds=timeout_seconds)
         except Exception as e:
             logger.error(f"发送飞书消息失败: {e}")
             return False
@@ -188,7 +186,7 @@ class FeishuSender:
         return success_count == total_chunks
     
     def _send_feishu_message(self, content: str, *, timeout_seconds: Optional[float] = None) -> bool:
-        """发送单条飞书消息（优先使用 Markdown 卡片）"""
+        """发送单条飞书消息（优先使用结构化消息卡片）"""
         prepared_content = self._apply_keyword_prefix(content)
         security_fields = self._build_security_fields()
 
@@ -225,7 +223,9 @@ class FeishuSender:
                 logger.error(f"响应内容: {response.text}")
                 return False
 
-        # 1) 优先使用交互卡片（支持 Markdown 渲染）
+        # 1) 优先使用结构化交互卡片。飞书的 lark_md 不是完整 Markdown，
+        # 表格/代码块/引用需要拆成卡片元素才会真正渲染。
+        card_elements = build_feishu_card_elements(prepared_content)
         card_payload = {
             "msg_type": "interactive",
             "card": {
@@ -236,15 +236,7 @@ class FeishuSender:
                         "content": "股票智能分析报告"
                     }
                 },
-                "elements": [
-                    {
-                        "tag": "div",
-                        "text": {
-                            "tag": "lark_md",
-                            "content": prepared_content
-                        }
-                    }
-                ]
+                "elements": card_elements,
             }
         }
 
@@ -255,7 +247,7 @@ class FeishuSender:
         text_payload = {
             "msg_type": "text",
             "content": {
-                "text": prepared_content
+                "text": format_feishu_markdown(prepared_content)
             }
         }
 

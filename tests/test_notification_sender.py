@@ -205,6 +205,27 @@ class TestFeishuSender(unittest.TestCase):
         )
 
     @mock.patch("src.notification_sender.feishu_sender.requests.post")
+    def test_send_markdown_table_uses_structured_card_elements(self, mock_post):
+        mock_post.return_value = _response(200, {"code": 0})
+        cfg = _config(feishu_webhook_url="https://feishu.example/hook")
+        sender = FeishuSender(cfg)
+        content = """# 大盘复盘
+
+| 指标 | 数值 | 观察 |
+| --- | --- | --- |
+| 涨停/跌停 | 125 / 60 | 涨跌停差 +65 |
+"""
+
+        result = sender.send_to_feishu(content)
+
+        self.assertTrue(result)
+        payload = mock_post.call_args.kwargs["json"]
+        serialized = json.dumps(payload["card"]["elements"], ensure_ascii=False)
+        self.assertIn('"tag": "column_set"', serialized)
+        self.assertNotIn("```", serialized)
+        self.assertNotIn("| 指标 |", serialized)
+
+    @mock.patch("src.notification_sender.feishu_sender.requests.post")
     def test_send_error_response_returns_false(self, mock_post):
         mock_post.return_value = _response(200, {"code": 19024, "msg": "keyword not found"})
         cfg = _config(feishu_webhook_url="https://feishu.example/hook")

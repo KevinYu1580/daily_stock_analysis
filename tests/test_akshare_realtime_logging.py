@@ -148,3 +148,25 @@ def test_tencent_realtime_success_logs_endpoint(caplog, monkeypatch, akshare_fet
     assert breaker.successes == ["akshare_tencent"]
     assert f"endpoint={TENCENT_REALTIME_ENDPOINT}" in caplog.text
     assert "[实时行情-腾讯] 601006 大秦铁路:" in caplog.text
+
+
+def test_hot_stocks_falls_back_to_eastmoney(monkeypatch, akshare_fetcher):
+    monkeypatch.setattr(
+        akshare_fetcher,
+        "_get_eastmoney_hot_stocks",
+        lambda _ak, n: [
+            {
+                "rank": 1,
+                "code": "SZ000066",
+                "name": "中国长城",
+                "price": 21.8,
+                "change_pct": 9.99,
+                "source": "东方财富人气榜",
+            }
+        ],
+    )
+
+    result = akshare_fetcher.get_hot_stocks(5)
+
+    assert result[0]["source"] == "东方财富人气榜"
+    assert result[0]["name"] == "中国长城"

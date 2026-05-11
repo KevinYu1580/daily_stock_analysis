@@ -2,6 +2,7 @@
 """
 Unit tests for formatters.
 """
+import json
 import os
 import sys
 import unittest
@@ -9,8 +10,10 @@ import unittest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.formatters import (
+    build_feishu_card_elements,
     chunk_content_by_max_words,
     chunk_content_by_max_bytes,
+    format_feishu_markdown,
     slice_at_max_bytes,
     TRUNCATION_SUFFIX,
     MIN_MAX_WORDS,
@@ -176,3 +179,44 @@ class TestChunkContentByMaxBytes(unittest.TestCase):
         chunk, remaining = slice_at_max_bytes("测试ABC", 7)
         self.assertEqual(chunk, "测试A")
         self.assertEqual(remaining, "BC")
+
+
+class TestFeishuMarkdownFormatter(unittest.TestCase):
+    """Tests for Feishu lark_md compatible formatting."""
+
+    def test_markdown_table_becomes_aligned_code_block(self):
+        content = """### 盘面温度
+
+| 指标 | 数值 | 观察 |
+|------|------|------|
+| 上涨/下跌 | 3200 / 1800 | 上涨占比 64% |
+"""
+        result = format_feishu_markdown(content)
+
+        self.assertIn("**盘面温度**", result)
+        self.assertIn("```", result)
+        self.assertIn("指标", result)
+        self.assertIn("上涨/下跌", result)
+        self.assertNotIn("• 指标：", result)
+
+    def test_star_list_items_are_normalized(self):
+        result = format_feishu_markdown("*   失效条件：缩量")
+
+        self.assertEqual(result, "• 失效条件：缩量")
+
+    def test_card_elements_render_tables_as_columns(self):
+        content = """# 大盘复盘
+
+> 盘面评分：73/100（强势）
+
+| 指标 | 数值 | 观察 |
+| --- | ---: | --- |
+| 涨停 / 跌停 | 125 / 60 | 涨跌停差 +65 |
+"""
+        elements = build_feishu_card_elements(content)
+        serialized = json.dumps(elements, ensure_ascii=False)
+
+        self.assertIn('"tag": "column_set"', serialized)
+        self.assertIn('"tag": "note"', serialized)
+        self.assertNotIn("```", serialized)
+        self.assertNotIn("| 指标 |", serialized)
