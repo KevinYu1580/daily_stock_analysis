@@ -101,12 +101,12 @@ class MarketCommandRegionFilterTestCase(unittest.TestCase):
             notifier,
         )
 
-    def test_both_with_cn_us_open_passes_override_region_cn_us(self) -> None:
-        """MARKET_REVIEW_REGION=both + open markets {cn, us} -> override_region='cn,us'."""
+    def test_both_with_tw_us_open_passes_override_region_tw_us(self) -> None:
+        """MARKET_REVIEW_REGION=both + open markets {tw, us} -> override_region='tw,us'."""
         message = _make_message()
         config, notifier, runtime_analyzer, runtime_search, market_review_module, runtime_module, _ = self._patch_dependencies(
             market_review_region="both",
-            open_markets={"cn", "us"},
+            open_markets={"tw", "us"},
         )
 
         cmd = MarketCommand()
@@ -121,36 +121,25 @@ class MarketCommandRegionFilterTestCase(unittest.TestCase):
             analyzer=runtime_analyzer,
             search_service=runtime_search,
             send_notification=True,
-            override_region="cn,us",
+            override_region="tw,us",
         )
         kwargs = market_review_module.run_market_review.call_args.kwargs
-        self.assertEqual(kwargs.get("override_region"), "cn,us")
+        self.assertEqual(kwargs.get("override_region"), "tw,us")
 
-    def test_both_with_cn_hk_open_passes_override_region_cn_hk(self) -> None:
-        """MARKET_REVIEW_REGION=both + open markets {cn, hk} -> override_region='cn,hk'."""
+    def test_both_with_single_market_open_passes_single_override(self) -> None:
+        """MARKET_REVIEW_REGION=both + open markets {us} -> override_region='us'."""
         message = _make_message()
         config, notifier, runtime_analyzer, runtime_search, market_review_module, runtime_module, _ = self._patch_dependencies(
             market_review_region="both",
-            open_markets={"cn", "hk"},
+            open_markets={"us"},
         )
 
         cmd = MarketCommand()
         cmd._run_market_review(message, config, None)
 
-        runtime_module.build_market_review_runtime.assert_called_once_with(
-            config,
-            source_message=message,
-        )
-        market_review_module.run_market_review.assert_called_once_with(
-            notifier=notifier,
-            analyzer=runtime_analyzer,
-            search_service=runtime_search,
-            send_notification=True,
-            override_region="cn,hk",
-        )
         market_review_module.run_market_review.assert_called_once()
         kwargs = market_review_module.run_market_review.call_args.kwargs
-        self.assertEqual(kwargs.get("override_region"), "cn,hk")
+        self.assertEqual(kwargs.get("override_region"), "us")
 
     def test_all_relevant_markets_closed_skips_review(self) -> None:
         """If compute_effective_region returns '', skip review and notify."""
@@ -175,7 +164,7 @@ class MarketCommandRegionFilterTestCase(unittest.TestCase):
         message = _make_message()
         config, notifier, runtime_analyzer, runtime_search, market_review_module, runtime_module, _ = self._patch_dependencies(
             market_review_region="both",
-            open_markets={"cn"},
+            open_markets={"tw"},
             trading_day_check_enabled=False,
         )
 
@@ -201,8 +190,8 @@ class MarketCommandRegionFilterTestCase(unittest.TestCase):
         """Runtime construction failure should still release the command-level lock token."""
         message = _make_message()
         config, notifier, runtime_analyzer, runtime_search, market_review_module, runtime_module, _ = self._patch_dependencies(
-            market_review_region="cn",
-            open_markets={"cn"},
+            market_review_region="tw",
+            open_markets={"tw"},
         )
 
         cmd = MarketCommand()
@@ -219,8 +208,8 @@ class MarketCommandRegionFilterTestCase(unittest.TestCase):
         """Thread start failure in execute() should release lock and return an error."""
         message = _make_message()
         config, _, _, _, _, _, _ = self._patch_dependencies(
-            market_review_region="cn",
-            open_markets={"cn"},
+            market_review_region="tw",
+            open_markets={"tw"},
         )
 
         cmd = MarketCommand()

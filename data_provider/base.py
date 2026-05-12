@@ -65,53 +65,38 @@ def summarize_exception(exc: Exception) -> Tuple[str, str]:
 
 def normalize_stock_code(stock_code: str) -> str:
     """
-    Normalize stock code by stripping exchange prefixes/suffixes.
+    Normalize a stock code for internal keying / fetcher dispatch（仅台股 / 美股）。
 
     Accepted formats and their normalized results:
-    - '600519'      -> '600519'   (already clean)
-    - 'SH600519'    -> '600519'   (strip SH prefix)
-    - 'SZ000001'    -> '000001'   (strip SZ prefix)
-    - 'BJ920748'    -> '920748'   (strip BJ prefix, BSE)
-    - 'sh600519'    -> '600519'   (case-insensitive)
-    - '600519.SH'   -> '600519'   (strip .SH suffix)
-    - '000001.SZ'   -> '000001'   (strip .SZ suffix)
-    - '920748.BJ'   -> '920748'   (strip .BJ suffix, BSE)
-    - 'HK00700'     -> 'HK00700'  (keep HK prefix for HK stocks)
-    - '1810.HK'     -> 'HK01810'  (normalize HK suffix to canonical prefix form)
-    - 'AAPL'        -> 'AAPL'     (keep US stock ticker as-is)
+    - '2330'        -> '2330'     (台股，已是纯数字)
+    - 'tw2330'      -> '2330'     (去掉 tw 前缀)
+    - 'TW00878'     -> '00878'    (5 码 ETF)
+    - '2330.TW'     -> '2330'     (去掉 .TW 后缀)
+    - '6488.TWO'    -> '6488'     (去掉 .TWO 后缀)
+    - 'AAPL'        -> 'AAPL'     (美股 ticker 原样)
+    - 'SPX'         -> 'SPX'      (美股指数符号原样)
 
-    This function is applied at the DataProviderManager layer so that
-    all individual fetchers receive a clean 6-digit code (for A-shares/ETFs).
+    无法识别的代码原样返回（去首尾空白）。各 fetcher 自行做最终格式转换
+    （yfinance 走 tw_market.to_tw_yf_code，finmind 走 normalize_tw_code）。
     """
-    code = stock_code.strip()
+    code = (stock_code or "").strip()
+    if not code:
+        return code
     upper = code.upper()
 
-    # Normalize HK prefix to a canonical 5-digit form (e.g. hk1810 -> HK01810)
-    if upper.startswith('HK') and not upper.startswith('HK.'):
-        candidate = upper[2:]
-        if candidate.isdigit() and 1 <= len(candidate) <= 5:
-            return f"HK{candidate.zfill(5)}"
-
-    # Strip SH/SZ prefix (e.g. SH600519 -> 600519)
-    if upper.startswith(('SH', 'SZ')) and not upper.startswith('SH.') and not upper.startswith('SZ.'):
-        candidate = code[2:]
-        # Only strip if the remainder looks like a valid numeric code
-        if candidate.isdigit() and len(candidate) in (5, 6):
-            return candidate
-
-    # Strip BJ prefix (e.g. BJ920748 -> 920748)
-    if upper.startswith('BJ') and not upper.startswith('BJ.'):
-        candidate = code[2:]
-        if candidate.isdigit() and len(candidate) == 6:
-            return candidate
-
-    # Strip .SH/.SZ/.BJ suffix (e.g. 600519.SH -> 600519, 920748.BJ -> 920748)
-    if '.' in code:
-        base, suffix = code.rsplit('.', 1)
-        if suffix.upper() == 'HK' and base.isdigit() and 1 <= len(base) <= 5:
-            return f"HK{base.zfill(5)}"
-        if suffix.upper() in ('SH', 'SZ', 'SS', 'BJ') and base.isdigit():
+    # .TWO 后缀（上柜）
+    if upper.endswith(".TWO"):
+        base = code[:-4]
+        if base.isdigit() and len(base) in (4, 5):
             return base
+    # .TW 后缀（上市）
+    if upper.endswith(".TW"):
+        base = code[:-3]
+        if base.isdigit() and len(base) in (4, 5):
+            return base
+    # tw 前缀 + 4~5 码数字
+    if upper.startswith("TW") and code[2:].isdigit() and len(code[2:]) in (4, 5):
+        return code[2:]
 
     return code
 
@@ -140,7 +125,14 @@ def _is_etf_code(code: str) -> bool:
 
 
 def _market_tag(code: str) -> str:
-    """返回市场标签: us/tw（本系统仅支持台股 / 美股；非美股一律视为台股）。"""
+    """返回市场标签: us/tw（本系统仅支持台股 / 美股）。
+
+    台股指数 / 个股优先判断（TWII/TWO/TW50 也符合美股 ticker 字母规则）；
+    其余非美股一律视为台股。
+    """
+    from .tw_market import is_tw_stock_code as _tw_stock, is_tw_index_code as _tw_index
+    if _tw_index(code) or _tw_stock(code):
+        return "tw"
     return "us" if _is_us_market(code) else "tw"
 
 

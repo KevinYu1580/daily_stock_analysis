@@ -121,14 +121,14 @@ class HistoryLoaderTestCase(unittest.TestCase):
         mock_db = MagicMock()
 
         def side_effect(code, start, end):
-            if code == "SH600519":
+            if code == "tw2330":
                 return []
             return [fake_bar] * 30
 
         mock_db.get_data_range.side_effect = side_effect
         mock_get_db.return_value = mock_db
 
-        df, source = load_history_df("SH600519", days=30, target_date=date(2026, 4, 18))
+        df, source = load_history_df("tw2330", days=30, target_date=date(2026, 4, 18))
 
         self.assertEqual(source, "db_cache")
         self.assertEqual(mock_db.get_data_range.call_count, 2)

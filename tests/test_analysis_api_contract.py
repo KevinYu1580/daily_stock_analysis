@@ -1031,76 +1031,33 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             notify=True,
         )
 
-    def test_trigger_analysis_accepts_hk_suffix_code_from_autocomplete(self) -> None:
+    def test_trigger_analysis_rejects_unsupported_market_codes(self) -> None:
+        """A-share / HK / BSE codes are no longer supported and must be rejected."""
         if trigger_analysis is None:
             self.skipTest("fastapi is not installed in this test environment")
 
-        queue = MagicMock()
-        queue.submit_tasks_batch.return_value = ([], [])
-
-        with patch("api.v1.endpoints.analysis.get_task_queue", return_value=queue), \
-             patch("api.v1.endpoints.analysis.resolve_name_to_code") as resolve_mock:
-            response = trigger_analysis(
-                request=SimpleNamespace(
-                    stock_code="00700.HK",
-                    stock_codes=None,
-                    stock_name="腾讯控股",
-                    original_query="00700",
-                    selection_source="autocomplete",
-                    report_type="detailed",
-                    force_refresh=False,
-                    async_mode=True,
-                ),
-                config=SimpleNamespace(),
-            )
-
-        self.assertEqual(response.status_code, 202)
-        resolve_mock.assert_not_called()
-        queue.submit_tasks_batch.assert_called_once_with(
-            stock_codes=["00700.HK"],
-            stock_name="腾讯控股",
-            original_query="00700",
-            selection_source="autocomplete",
-            report_type="detailed",
-            force_refresh=False,
-            notify=True,
-        )
-
-    def test_trigger_analysis_accepts_bse_suffix_code_from_autocomplete(self) -> None:
-        if trigger_analysis is None:
-            self.skipTest("fastapi is not installed in this test environment")
-
-        queue = MagicMock()
-        queue.submit_tasks_batch.return_value = ([], [])
-
-        with patch("api.v1.endpoints.analysis.get_task_queue", return_value=queue), \
-             patch("api.v1.endpoints.analysis.resolve_name_to_code") as resolve_mock:
-            response = trigger_analysis(
-                request=SimpleNamespace(
-                    stock_code="920493.BJ",
-                    stock_codes=None,
-                    stock_name="示例北交所股票",
-                    original_query="920493",
-                    selection_source="autocomplete",
-                    report_type="detailed",
-                    force_refresh=False,
-                    async_mode=True,
-                    notify=True,
-                ),
-                config=SimpleNamespace(),
-            )
-
-        self.assertEqual(response.status_code, 202)
-        resolve_mock.assert_not_called()
-        queue.submit_tasks_batch.assert_called_once_with(
-            stock_codes=["920493.BJ"],
-            stock_name="示例北交所股票",
-            original_query="920493",
-            selection_source="autocomplete",
-            report_type="detailed",
-            force_refresh=False,
-            notify=True,
-        )
+        for bad_code in ("00700.HK", "HK00700", "920493.BJ", "600519", "SH600519"):
+            with self.subTest(bad_code=bad_code):
+                queue = MagicMock()
+                with patch("api.v1.endpoints.analysis.get_task_queue", return_value=queue), \
+                     patch("api.v1.endpoints.analysis.resolve_name_to_code", return_value=None):
+                    with self.assertRaises(Exception) as exc:
+                        trigger_analysis(
+                            request=SimpleNamespace(
+                                stock_code=bad_code,
+                                stock_codes=None,
+                                stock_name=None,
+                                original_query=bad_code,
+                                selection_source="manual",
+                                report_type="detailed",
+                                force_refresh=False,
+                                async_mode=True,
+                                notify=True,
+                            ),
+                            config=SimpleNamespace(),
+                        )
+                self.assertEqual(exc.exception.status_code, 400)
+                queue.submit_tasks_batch.assert_not_called()
 
     def test_trigger_analysis_rejects_non_bse_code_with_bj_exchange_hint(self) -> None:
         if trigger_analysis is None:
@@ -1132,41 +1089,6 @@ class AnalysisApiContractTestCase(unittest.TestCase):
                 self.assertEqual(exc.exception.detail["error"], "validation_error")
                 resolve_mock.assert_not_called()
                 queue.submit_tasks_batch.assert_not_called()
-
-    def test_trigger_analysis_accepts_hk_prefixed_code(self) -> None:
-        if trigger_analysis is None:
-            self.skipTest("fastapi is not installed in this test environment")
-
-        queue = MagicMock()
-        queue.submit_tasks_batch.return_value = ([], [])
-
-        with patch("api.v1.endpoints.analysis.get_task_queue", return_value=queue), \
-             patch("api.v1.endpoints.analysis.resolve_name_to_code") as resolve_mock:
-            response = trigger_analysis(
-                request=SimpleNamespace(
-                    stock_code="HK00700",
-                    stock_codes=None,
-                    stock_name=None,
-                    original_query="HK00700",
-                    selection_source="manual",
-                    report_type="detailed",
-                    force_refresh=False,
-                    async_mode=True,
-                ),
-                config=SimpleNamespace(),
-            )
-
-        self.assertEqual(response.status_code, 202)
-        resolve_mock.assert_not_called()
-        queue.submit_tasks_batch.assert_called_once_with(
-            stock_codes=["HK00700"],
-            stock_name=None,
-            original_query="HK00700",
-            selection_source="manual",
-            report_type="detailed",
-            force_refresh=False,
-            notify=True,
-        )
 
     def test_trigger_analysis_allows_stock_names_with_star_and_hyphen(self) -> None:
         if trigger_analysis is None:
@@ -1249,7 +1171,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             response = trigger_analysis(
                 request=SimpleNamespace(
                     stock_code=None,
-                    stock_codes=["600519", "000001"],
+                    stock_codes=["2330", "AAPL"],
                     stock_name=None,
                     original_query="uploaded.csv",
                     selection_source="import",
@@ -1263,7 +1185,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 202)
         queue.submit_tasks_batch.assert_called_once_with(
-            stock_codes=["600519", "000001"],
+            stock_codes=["2330", "AAPL"],
             stock_name=None,
             original_query="uploaded.csv",
             selection_source="import",
@@ -1285,7 +1207,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             with patch("api.v1.endpoints.analysis.get_task_queue", return_value=queue):
                 first = trigger_analysis(
                     request=SimpleNamespace(
-                        stock_code="600519",
+                        stock_code="2330",
                         stock_codes=None,
                         stock_name=None,
                         original_query=None,
@@ -1299,7 +1221,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
                 )
                 second = trigger_analysis(
                     request=SimpleNamespace(
-                        stock_code="600519.SH",
+                        stock_code="2330.TW",
                         stock_codes=None,
                         stock_name=None,
                         original_query=None,
@@ -1315,7 +1237,7 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             self.assertEqual(first.status_code, 202)
             self.assertEqual(second.status_code, 409)
             self.assertEqual(json.loads(second.body)["error"], "duplicate_task")
-            self.assertEqual(json.loads(second.body)["stock_code"], "600519.SH")
+            self.assertEqual(json.loads(second.body)["stock_code"], "2330.TW")
             self.assertEqual(
                 json.loads(second.body)["existing_task_id"],
                 json.loads(first.body)["task_id"],
@@ -1339,9 +1261,9 @@ class AnalysisApiContractTestCase(unittest.TestCase):
             response = trigger_analysis(
                 request=SimpleNamespace(
                     stock_code=None,
-                    stock_codes=["600519", "000001"],
-                    stock_name="贵州茅台",
-                    original_query="茅台,平安银行",
+                    stock_codes=["2330", "AAPL"],
+                    stock_name="台積電",
+                    original_query="台積電,蘋果",
                     selection_source="import",
                     report_type="detailed",
                     force_refresh=False,
@@ -1353,9 +1275,9 @@ class AnalysisApiContractTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 202)
         queue.submit_tasks_batch.assert_called_once_with(
-            stock_codes=["600519", "000001"],
+            stock_codes=["2330", "AAPL"],
             stock_name=None,
-            original_query="茅台,平安银行",
+            original_query="台積電,蘋果",
             selection_source="import",
             report_type="detailed",
             force_refresh=False,
@@ -1501,18 +1423,18 @@ class BatchTaskQueueContractTestCase(unittest.TestCase):
         queue = AnalysisTaskQueue(max_workers=1)
         queue._executor = type("ExecutorStub", (), {"submit": lambda self, *args, **kwargs: Future()})()
 
-        accepted, duplicates = queue.submit_tasks_batch(["600519"], report_type="detailed")
+        accepted, duplicates = queue.submit_tasks_batch(["2330"], report_type="detailed")
 
         self.assertEqual(len(accepted), 1)
         self.assertEqual(duplicates, [])
-        self.assertTrue(queue.is_analyzing("600519.SH"))
-        self.assertEqual(queue.get_analyzing_task_id("600519.SH"), accepted[0].task_id)
+        self.assertTrue(queue.is_analyzing("2330.TW"))
+        self.assertEqual(queue.get_analyzing_task_id("2330.TW"), accepted[0].task_id)
 
-        accepted_again, duplicates_again = queue.submit_tasks_batch(["600519.SH"], report_type="detailed")
+        accepted_again, duplicates_again = queue.submit_tasks_batch(["2330.TW"], report_type="detailed")
 
         self.assertEqual(accepted_again, [])
         self.assertEqual(len(duplicates_again), 1)
-        self.assertEqual(duplicates_again[0].stock_code, "600519.SH")
+        self.assertEqual(duplicates_again[0].stock_code, "2330.TW")
         self.assertEqual(duplicates_again[0].existing_task_id, accepted[0].task_id)
 
     def test_submit_task_rejects_blank_stock_code(self) -> None:

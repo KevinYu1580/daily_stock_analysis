@@ -109,12 +109,7 @@ class YfinanceFetcher(BaseFetcher):
             logger.debug(f"识别为美股指数: {code} -> {yf_symbol}")
             return yf_symbol
 
-        # 美股：1-5 个大写字母（可选 .X 后缀），原样返回
-        if is_us_stock_code(code):
-            logger.debug(f"识别为美股代码: {code}")
-            return code
-
-        # 台股指数：映射到 yfinance 符号
+        # 台股指数：映射到 yfinance 符号（须在美股 ticker 判断之前，TWII/TWO/TW50 也符合字母规则）
         tw_yf_symbol, _ = get_tw_index_yf_symbol(code)
         if tw_yf_symbol:
             logger.debug(f"識別為台股指數: {code} -> {tw_yf_symbol}")
@@ -125,6 +120,11 @@ class YfinanceFetcher(BaseFetcher):
             yf_code = to_tw_yf_code(code)
             logger.debug(f"轉換台股代碼: {stock_code} -> {yf_code}")
             return yf_code
+
+        # 美股：1-5 个大写字母（可选 .X 后缀），原样返回
+        if is_us_stock_code(code):
+            logger.debug(f"识别为美股代码: {code}")
+            return code
 
         # 已是 yfinance 符号或未识别：原样返回，由 yfinance 自行判断
         return code

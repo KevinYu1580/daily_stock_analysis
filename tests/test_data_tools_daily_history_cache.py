@@ -124,17 +124,17 @@ class DailyHistoryCacheToolTest(unittest.TestCase):
         target = date(2026, 4, 24)
         db = _FakeDb(
             {
-                "1810.HK": _rows("1810.HK", target, 30),
-                "HK01810": _rows("HK01810", target, 30),
+                "2330.TW": _rows("2330.TW", target, 30),
+                "2330": _rows("2330", target, 30),
             }
         )
         manager = SimpleNamespace(get_daily_data=MagicMock())
 
         with patch("src.storage.get_db", return_value=db), \
              patch("src.services.history_loader._get_fetcher_manager", return_value=manager):
-            result = self._run_with_frozen_date(target, "1810.HK", days=60)
+            result = self._run_with_frozen_date(target, "2330.TW", days=60)
 
-        self.assertEqual(result["code"], "HK01810")
+        self.assertEqual(result["code"], "2330")
         self.assertEqual(result["actual_records"], 30)
         manager.get_daily_data.assert_not_called()
 

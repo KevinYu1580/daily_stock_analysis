@@ -82,13 +82,13 @@ class TestAnalysisIntegration:
         assert kwargs["notify"] is True
 
     def test_trigger_analysis_batch_deduplication(self, client, mock_task_queue):
-        """Test de-duplication across different formats (600519 and 600519.SH)."""
+        """Test de-duplication across different formats (2330 and 2330.TW)."""
         mock_task_queue.submit_tasks_batch.return_value = ([], [])
 
         client.post(
             "/api/v1/analysis/analyze",
             json={
-                "stock_codes": ["600519", "600519.SH"],
+                "stock_codes": ["2330", "2330.TW"],
                 "async_mode": True
             }
         )
@@ -97,11 +97,11 @@ class TestAnalysisIntegration:
         mock_task_queue.submit_tasks_batch.assert_called_once()
         args, kwargs = mock_task_queue.submit_tasks_batch.call_args
         assert len(kwargs["stock_codes"]) == 1
-        assert kwargs["stock_codes"] == ["600519"]
+        assert kwargs["stock_codes"] == ["2330"]
 
     def test_trigger_analysis_dos_protection(self, client):
         """Test that excessive stock codes are rejected."""
-        too_many_codes = [f"{i:06d}" for i in range(101)]
+        too_many_codes = [f"{1000 + i:04d}" for i in range(101)]
         response = client.post(
             "/api/v1/analysis/analyze",
             json={
@@ -120,7 +120,7 @@ class TestAnalysisIntegration:
         client.post(
             "/api/v1/analysis/analyze",
             json={
-                "stock_codes": ["600519", "000001"],
+                "stock_codes": ["2330", "AAPL"],
                 "stock_name": "贵州茅台",
                 "original_query": "茅台",
                 "async_mode": True

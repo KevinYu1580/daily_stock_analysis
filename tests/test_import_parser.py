@@ -180,24 +180,24 @@ class TestParseImportFromText:
         assert result[0] == ("600519", "贵州茅台", "medium")
 
     def test_parses_single_column_codes(self):
-        text = "00700\n600519"
+        text = "2330\nAAPL"
         result = parse_import_from_text(text)
         assert len(result) == 2
-        assert result[0] == ("00700", None, "medium")
-        assert result[1] == ("600519", None, "medium")
+        assert result[0] == ("2330", None, "medium")
+        assert result[1] == ("AAPL", None, "medium")
 
     def test_parses_single_column_with_header(self):
-        text = "code\n00700"
+        text = "code\n2330"
         result = parse_import_from_text(text)
         assert len(result) == 1
-        assert result[0] == ("00700", None, "medium")
+        assert result[0] == ("2330", None, "medium")
 
     def test_parses_space_separated_code_name_lines(self):
-        text = "600519 贵州茅台\n00700 腾讯控股"
+        text = "2330 台積電\nAAPL Apple"
         result = parse_import_from_text(text)
         assert len(result) == 2
-        assert result[0] == ("600519", "贵州茅台", "medium")
-        assert result[1] == ("00700", "腾讯控股", "medium")
+        assert result[0] == ("2330", "台積電", "medium")
+        assert result[1] == ("AAPL", "Apple", "medium")
 
     def test_preserves_name_when_code_is_dirty(self):
         data = "code,name\nINVALID,贵州茅台".encode("utf-8")

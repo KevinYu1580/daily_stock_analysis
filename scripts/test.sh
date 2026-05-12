@@ -1,6 +1,6 @@
 #!/bin/bash
 # ===================================
-# A股/港股/美股 智能分析系统 - 测试脚本
+# 台股/美股 智能分析系统 - 测试脚本
 # ===================================
 #
 # 使用方法：
@@ -8,11 +8,10 @@
 #
 # 测试场景：
 #   market      - 仅大盘复盘
-#   a-stock     - A股个股分析（茅台、平安银行）
-#   etf         - etf分析(卫星etf 563230)
-#   hk-stock    - 港股分析（腾讯、阿里）
+#   tw-stock    - 台股个股分析（台积电、联发科）
+#   etf         - ETF 分析（0050、00878）
 #   us-stock    - 美股分析（苹果、特斯拉）
-#   mixed       - 混合市场分析
+#   mixed       - 混合市场分析（台股 + 美股）
 #   single      - 单股模式测试
 #   dry-run     - 仅获取数据不分析
 #   full        - 完整流程测试
@@ -75,8 +74,8 @@ check_python() {
 # 检查依赖
 check_deps() {
     info "检查依赖..."
-    python3 -c "import yfinance" 2>/dev/null || { warn "yfinance 未安装，美股测试可能失败"; }
-    python3 -c "import akshare" 2>/dev/null || { warn "akshare 未安装，A股/港股测试可能失败"; }
+    python3 -c "import yfinance" 2>/dev/null || { warn "yfinance 未安装，台股/美股测试可能失败"; }
+    python3 -c "import FinMind" 2>/dev/null || { warn "FinMind 未安装，台股 K 线/财报数据将仅依赖 yfinance"; }
     success "依赖检查完成"
 }
 
@@ -90,31 +89,23 @@ test_market() {
     success "大盘复盘测试完成"
 }
 
-# 测试2: A股分析
-test_a_stock() {
-    header "测试场景: A股分析"
-    info "分析A股: 600519(茅台), 000001(平安银行)"
-    python3 main.py --stocks 600519,000001  --no-market-review "$@"
-    success "A股分析测试完成"
+# 测试2: 台股分析
+test_tw_stock() {
+    header "测试场景: 台股分析"
+    info "分析台股: 2330(台积电), 2454(联发科)"
+    python3 main.py --stocks 2330,2454 --no-market-review "$@"
+    success "台股分析测试完成"
 }
 
 # 测试2.5: ETF分析
 test_etf() {
     header "测试场景: ETF分析"
-    info "分析ETF: 563230(卫星ETF)"
-    python3 main.py --stocks 563230,512400 --no-market-review "$@"
+    info "分析 ETF: 0050(元大台湾50), 00878(国泰永续高股息)"
+    python3 main.py --stocks 0050,tw00878 --no-market-review "$@"
     success "ETF分析测试完成"
 }
 
-# 测试3: 港股分析
-test_hk_stock() {
-    header "测试场景: 港股分析"
-    info "分析港股: hk00700(腾讯), hk09988(阿里)"
-    python3 main.py --stocks hk00700,hk09988 --no-market-review "$@"
-    success "港股分析测试完成"
-}
-
-# 测试4: 美股分析
+# 测试3: 美股分析
 test_us_stock() {
     header "测试场景: 美股分析"
     info "分析美股: AAPL(苹果), TSLA(特斯拉)"
@@ -123,78 +114,79 @@ test_us_stock() {
     success "美股分析测试完成"
 }
 
-# 测试5: 混合市场
+# 测试4: 混合市场
 test_mixed() {
     header "测试场景: 混合市场分析"
-    info "分析混合市场: 600519(A股), hk00700(港股), AAPL(美股)"
-    python3 main.py --stocks 600519,hk00700,AAPL --no-market-review
+    info "分析混合市场: 2330(台股), AAPL(美股)"
+    python3 main.py --stocks 2330,AAPL --no-market-review
     success "混合市场测试完成"
 }
 
-# 测试6: 单股推送模式
+# 测试5: 单股推送模式
 test_single() {
     header "测试场景: 单股推送模式"
     info "测试单股推送模式..."
-    python3 main.py --stocks 600519 --single-notify --no-market-review
+    python3 main.py --stocks 2330 --single-notify --no-market-review
     success "单股推送模式测试完成"
 }
 
-# 测试7: dry-run模式
+# 测试6: dry-run模式
 test_dry_run() {
     header "测试场景: Dry-Run 模式"
     info "仅获取数据，不进行AI分析..."
-    python3 main.py --stocks 600519,AAPL --dry-run --no-notify
+    python3 main.py --stocks 2330,AAPL --dry-run --no-notify
     success "Dry-Run 测试完成"
 }
 
-# 测试8: 完整流程
+# 测试7: 完整流程
 test_full() {
     header "测试场景: 完整流程"
     info "运行完整分析流程（个股+大盘）..."
-    python3 main.py --stocks 600519 --no-notify
+    python3 main.py --stocks 2330 --no-notify
     success "完整流程测试完成"
 }
 
-# 测试9: 快速测试
+# 测试8: 快速测试
 test_quick() {
     header "测试场景: 快速测试"
     info "单只股票快速测试..."
-    python3 main.py --stocks 600519 --no-market-review --no-notify "$@"
+    python3 main.py --stocks 2330 --no-market-review --no-notify "$@"
     success "快速测试完成"
 }
 
-# 测试10: 代码识别测试
+# 测试9: 代码识别测试
 test_code_recognition() {
     header "测试场景: 代码识别"
-    info "测试股票代码识别逻辑..."
+    info "测试股票代码识别逻辑（台股 / 美股）..."
 
     python3 << 'PYTEST'
 import sys
 sys.path.insert(0, '.')
-from data_provider.akshare_fetcher import _is_hk_code, _is_us_code
+from data_provider import is_us_stock_code, is_us_index_code, is_tw_stock_code, is_tw_index_code
 
 test_cases = [
-    # (代码, 预期HK, 预期US, 描述)
+    # (代码, 预期TW, 预期US, 描述)
     ("AAPL", False, True, "美股-苹果"),
     ("TSLA", False, True, "美股-特斯拉"),
     ("BRK.B", False, True, "美股-伯克希尔B"),
-    ("hk00700", True, False, "港股-腾讯"),
-    ("HK09988", True, False, "港股-阿里"),
-    ("600519", False, False, "A股-茅台"),
-    ("000001", False, False, "A股-平安"),
+    ("SPX", False, True, "美股指数-标普500"),
+    ("2330", True, False, "台股-台积电"),
+    ("tw00878", True, False, "台股ETF-国泰永续高股息"),
+    ("2330.TW", True, False, "台股-台积电（.TW 后缀）"),
+    ("TW50", True, False, "台股指数-台湾50（TWII/TWO 与美股 ticker 字母规则重叠，故用 TW50）"),
 ]
 
 print("\n股票代码识别测试:")
 print("-" * 60)
 all_pass = True
-for code, exp_hk, exp_us, desc in test_cases:
-    is_hk = _is_hk_code(code)
-    is_us = _is_us_code(code)
-    hk_ok = is_hk == exp_hk
+for code, exp_tw, exp_us, desc in test_cases:
+    is_tw = is_tw_stock_code(code) or is_tw_index_code(code)
+    is_us = is_us_stock_code(code) or is_us_index_code(code)
+    tw_ok = is_tw == exp_tw
     us_ok = is_us == exp_us
-    status = "✅" if (hk_ok and us_ok) else "❌"
-    all_pass = all_pass and hk_ok and us_ok
-    print(f"{status} {code:10} | HK:{is_hk:5} US:{is_us:5} | {desc}")
+    status = "✅" if (tw_ok and us_ok) else "❌"
+    all_pass = all_pass and tw_ok and us_ok
+    print(f"{status} {code:10} | TW:{is_tw!s:5} US:{is_us!s:5} | {desc}")
 
 print("-" * 60)
 print(f"{'✅ 所有测试通过!' if all_pass else '❌ 有测试失败!'}")
@@ -204,7 +196,7 @@ PYTEST
     success "代码识别测试完成"
 }
 
-# 测试11: YFinance代码转换测试
+# 测试10: YFinance代码转换测试
 test_yfinance_convert() {
     header "测试场景: YFinance 代码转换"
     info "测试YFinance代码转换逻辑..."
@@ -218,13 +210,15 @@ fetcher = YfinanceFetcher()
 
 test_cases = [
     ("AAPL", "AAPL", "美股"),
-    ("tsla", "TSLA", "美股小写"),
+    ("TSLA", "TSLA", "美股"),
     ("BRK.B", "BRK.B", "美股特殊"),
-    ("hk00700", "0700.HK", "港股"),
-    ("HK09988", "9988.HK", "港股大写"),
-    ("600519", "600519.SS", "A股沪市"),
-    ("000001", "000001.SZ", "A股深市"),
-    ("300750", "300750.SZ", "A股创业板"),
+    ("SPX", "^GSPC", "美股指数-标普500"),
+    ("2330", "2330.TW", "台股"),
+    ("tw00878", "00878.TW", "台股ETF（tw 前缀）"),
+    ("2330.TW", "2330.TW", "台股（已含 .TW）"),
+    ("6488.TWO", "6488.TWO", "台股上柜（.TWO）"),
+    ("TWII", "^TWII", "台股指数-加权指数"),
+    ("TW50", "0050.TW", "台股指数-台湾50"),
 ]
 
 print("\nYFinance 代码转换测试:")
@@ -244,20 +238,21 @@ PYTEST
     success "YFinance 代码转换测试完成"
 }
 
-# 测试12: 语法检查
+# 测试11: 语法检查
 test_syntax() {
     header "测试场景: Python 语法检查"
-    info "检查所有Python文件语法..."
+    info "检查关键 Python 文件语法..."
 
     python3 -m py_compile main.py src/config.py src/notification.py \
-        data_provider/akshare_fetcher.py \
+        data_provider/base.py \
         data_provider/yfinance_fetcher.py \
+        data_provider/finmind_fetcher.py \
         bot/commands/analyze.py
 
     success "语法检查通过"
 }
 
-# 测试13: Flake8 静态检查
+# 测试12: Flake8 静态检查
 test_flake8() {
     header "测试场景: Flake8 静态检查"
     info "运行 Flake8 检查严重错误..."
@@ -292,7 +287,7 @@ test_all() {
 # ==================== 主程序 ====================
 
 main() {
-    header "A股/港股/美股 智能分析系统 - 测试"
+    header "台股/美股 智能分析系统 - 测试"
 
     check_python
     check_deps
@@ -302,17 +297,13 @@ main() {
             shift
             test_market "$@"
             ;;
-        a-stock|a_stock|astock)
+        tw-stock|tw_stock|twstock|tw)
             shift
-            test_a_stock "$@"
+            test_tw_stock "$@"
             ;;
         etf)
             shift
             test_etf "$@"
-            ;;
-        hk-stock|hk_stock|hkstock|hk)
-            shift
-            test_hk_stock "$@"
             ;;
         us-stock|us_stock|usstock|us)
             shift
@@ -363,11 +354,10 @@ main() {
             echo ""
             echo "测试场景:"
             echo "  market      - 仅大盘复盘"
-            echo "  a-stock     - A股个股分析"
+            echo "  tw-stock    - 台股个股分析"
             echo "  etf         - ETF分析"
-            echo "  hk-stock    - 港股分析"
             echo "  us-stock    - 美股分析"
-            echo "  mixed       - 混合市场分析"
+            echo "  mixed       - 混合市场分析（台股 + 美股）"
             echo "  single      - 单股推送模式"
             echo "  dry-run     - 仅获取数据"
             echo "  full        - 完整流程"

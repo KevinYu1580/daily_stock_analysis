@@ -56,10 +56,11 @@ def get_market_for_stock(code: str) -> Optional[str]:
 
     from data_provider import is_us_stock_code, is_us_index_code, is_tw_stock_code, is_tw_index_code
 
-    if is_us_stock_code(code) or is_us_index_code(code):
-        return "us"
+    # 台股指数 / 个股优先判断（TWII/TWO/TW50 也符合美股 ticker 字母规则）
     if is_tw_index_code(code) or is_tw_stock_code(code):
         return "tw"
+    if is_us_stock_code(code) or is_us_index_code(code):
+        return "us"
     return None
 
 
