@@ -579,8 +579,54 @@ def _derive_chip_health(profit_ratio: float, concentration_90: float, language: 
     return localize_chip_health("一般", language)
 
 
+def _derive_chip_health_tw(tw_metrics: Dict[str, Any], language: str = "zh") -> str:
+    """Derive chip_health for TW stocks from FinMind 筹码面 metrics.
+
+    台股无 A 股式的成本分布，改以「三大法人买卖超方向 / 融资余额变化 / 外资持股变化」推导：
+    - 三大法人连续卖超数日，或融资余额明显增加 → 警惕
+    - 三大法人连续买超，或外资持续增持 → 健康
+    - 其余 → 一般
+    """
+    m = tw_metrics or {}
+    streak = m.get("inst_streak_days") or 0
+    margin_chg = m.get("margin_chg_5d_lots") or 0
+    margin_bal = m.get("margin_balance_lots") or 0
+    fh_chg = m.get("foreign_holding_chg_pp") or 0.0
+    net5 = m.get("inst_net_5d_lots") or 0
+
+    # 警惕：法人连卖 >= 3 日；或近 5 日合计明显卖超且融资逆势增加（散户接刀）
+    if streak <= -3:
+        return localize_chip_health("警惕", language)
+    if net5 < 0 and margin_bal > 0 and margin_chg > 0.05 * margin_bal:
+        return localize_chip_health("警惕", language)
+    # 健康：法人连买 >= 3 日；或外资持股回升 + 近 5 日合计买超
+    if streak >= 3:
+        return localize_chip_health("健康", language)
+    if fh_chg > 0 and net5 > 0:
+        return localize_chip_health("健康", language)
+    return localize_chip_health("一般", language)
+
+
 def _build_chip_structure_from_data(chip_data: Any, language: str = "zh") -> Dict[str, Any]:
     """Build chip_structure dict from ChipDistribution or dict."""
+    # 台股筹码面：A 股式的获利比例 / 平均成本 / 集中度不适用，置 N/A 以免误导；
+    # chip_health 改由 FinMind 三大法人/融资/外资指标推导，原始数值另经 chip_distribution 透传给模型。
+    if getattr(chip_data, "market_type", None) == "tw" or (
+        isinstance(chip_data, dict) and chip_data.get("market_type") == "tw"
+    ):
+        if hasattr(chip_data, "tw_metrics"):
+            tw_metrics = chip_data.tw_metrics or {}
+        elif isinstance(chip_data, dict):
+            tw_metrics = chip_data.get("tw_metrics") or {}
+        else:
+            tw_metrics = {}
+        return {
+            "profit_ratio": "N/A",
+            "avg_cost": "N/A",
+            "concentration": "N/A",
+            "chip_health": _derive_chip_health_tw(tw_metrics, language=language),
+        }
+
     if hasattr(chip_data, "profit_ratio"):
         pr = _safe_float(chip_data.profit_ratio)
         ac = chip_data.avg_cost

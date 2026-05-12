@@ -181,51 +181,85 @@ class UnifiedRealtimeQuote:
 @dataclass
 class ChipDistribution:
     """
-    筹码分布数据
-    
-    反映持仓成本分布和获利情况
+    筹码 / 籌碼面数据
+
+    两种语意（由 market_type 区分）：
+    - market_type == "cn"：A 股成本分布（获利比例 / 平均成本 / 集中度），来自 akshare
+    - market_type == "tw"：台股筹码面（三大法人买卖超 / 融资融券 / 外资持股比例），来自 FinMind；
+      此时 A 股专属的 profit_ratio / avg_cost / concentration_* 不适用，全部为 0，
+      实际数据放在 tw_metrics dict 内。
     """
     code: str
     date: str = ""
     source: str = "akshare"
-    
+
+    # 市场类型：cn=A股成本分布 / tw=台股筹码面
+    market_type: str = "cn"
+
+    # ---- A 股成本分布（market_type == "cn"）----
     # 获利情况
     profit_ratio: float = 0.0     # 获利比例(0-1)
     avg_cost: float = 0.0         # 平均成本
-    
+
     # 筹码集中度
     cost_90_low: float = 0.0      # 90%筹码成本下限
     cost_90_high: float = 0.0     # 90%筹码成本上限
     concentration_90: float = 0.0  # 90%筹码集中度（越小越集中）
-    
+
     cost_70_low: float = 0.0      # 70%筹码成本下限
     cost_70_high: float = 0.0     # 70%筹码成本上限
     concentration_70: float = 0.0  # 70%筹码集中度
-    
+
+    # ---- 台股筹码面（market_type == "tw"）----
+    # 典型字段（由 FinmindFetcher 填充，缺项为 None）：
+    #   foreign_holding_pct       外资持股比例 %（最新）
+    #   foreign_holding_chg_pp    外资持股比例近 N 日变化（百分点）
+    #   inst_net_5d_lots          三大法人近 5 日合计买卖超（张）
+    #   inst_net_5d_foreign_lots  外资近 5 日买卖超（张）
+    #   inst_streak_days          三大法人合计连续同向天数（正=连买 / 负=连卖）
+    #   margin_balance_lots       融资余额（张，最新）
+    #   margin_chg_5d_lots        融资余额近 5 日变化（张）
+    #   short_balance_lots        融券余额（张，最新）
+    tw_metrics: Optional[Dict[str, Any]] = None
+
+    @property
+    def is_tw(self) -> bool:
+        return self.market_type == "tw"
+
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典"""
-        return {
+        result: Dict[str, Any] = {
             'code': self.code,
             'date': self.date,
             'source': self.source,
+            'market_type': self.market_type,
+        }
+        if self.is_tw:
+            result['tw_metrics'] = dict(self.tw_metrics or {})
+            return result
+        result.update({
             'profit_ratio': self.profit_ratio,
             'avg_cost': self.avg_cost,
             'cost_90_low': self.cost_90_low,
             'cost_90_high': self.cost_90_high,
             'concentration_90': self.concentration_90,
             'concentration_70': self.concentration_70,
-        }
-    
+        })
+        return result
+
     def get_chip_status(self, current_price: float) -> str:
         """
         获取筹码状态描述
-        
+
         Args:
             current_price: 当前股价
-            
+
         Returns:
             筹码状态描述
         """
+        if self.is_tw:
+            return self._tw_chip_status()
+
         status_parts = []
         
         # 获利比例分析
@@ -263,8 +297,51 @@ class ChipDistribution:
                 status_parts.append("现价接近平均成本")
             else:
                 status_parts.append(f"现价低于平均成本{abs(cost_diff):.1f}%")
-        
+
         return "，".join(status_parts)
+
+    def _tw_chip_status(self) -> str:
+        """台股筹码面状态描述（由 tw_metrics 推导）。"""
+        m = self.tw_metrics or {}
+        parts: list = []
+
+        # 三大法人近 5 日买卖超 + 连续同向天数
+        net5 = m.get("inst_net_5d_lots")
+        streak = m.get("inst_streak_days")
+        if net5 is not None:
+            if net5 > 0:
+                desc = f"三大法人近5日合计买超{net5:,}张"
+            elif net5 < 0:
+                desc = f"三大法人近5日合计卖超{abs(net5):,}张"
+            else:
+                desc = "三大法人近5日买卖大致持平"
+            if streak:
+                desc += f"（连{'买' if streak > 0 else '卖'}{abs(streak)}日）"
+            parts.append(desc)
+
+        # 外资持股比例及变化
+        fh = m.get("foreign_holding_pct")
+        fh_chg = m.get("foreign_holding_chg_pp")
+        if fh is not None:
+            desc = f"外资持股比例{fh:.2f}%"
+            if fh_chg is not None and abs(fh_chg) >= 0.01:
+                desc += f"（近期{'+' if fh_chg > 0 else ''}{fh_chg:.2f}百分点）"
+            parts.append(desc)
+
+        # 融资余额及变化（融资增 = 散户加杠杆，过热信号）
+        mb = m.get("margin_balance_lots")
+        mb_chg = m.get("margin_chg_5d_lots")
+        if mb is not None:
+            desc = f"融资余额{mb:,}张"
+            if mb_chg is not None and mb_chg != 0:
+                desc += f"（近5日{'+' if mb_chg > 0 else ''}{mb_chg:,}张）"
+            parts.append(desc)
+
+        sb = m.get("short_balance_lots")
+        if sb is not None and sb > 0:
+            parts.append(f"融券余额{sb:,}张")
+
+        return "，".join(parts) if parts else "台股筹码面数据缺失"
 
 
 class CircuitBreaker:

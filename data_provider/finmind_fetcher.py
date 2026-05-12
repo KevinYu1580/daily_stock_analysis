@@ -19,6 +19,7 @@ import logging
 import os
 import sqlite3
 import time
+from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -302,6 +303,139 @@ class FinmindFetcher(BaseFetcher):
         has_content = any([result["growth"], result["earnings"], result["institution"]])
         result["status"] = "ok" if has_content else "partial"
         return result
+
+    # ---------- 籌碼面（台股）----------
+
+    def get_chip_distribution(self, stock_code: str):
+        """台股籌碼面（FinMind）：三大法人買賣超 + 融資融券 + 外資持股比例。
+
+        回傳 ``ChipDistribution(market_type="tw")``；非台股或三類資料皆取不到時回 ``None``（fail-open）。
+        A 股專屬的成本分布欄位（profit_ratio / avg_cost / concentration_*）在台股語境不適用，
+        相關數值留 0，實際資料放在 ``tw_metrics`` dict 內，下游報告生成器依 ``market_type`` 分流。
+        """
+        if not is_tw_stock_code(stock_code):
+            return None
+        code = normalize_tw_code(stock_code)
+        try:
+            api = self._ensure_api()
+        except DataFetchError as e:
+            logger.debug(f"[FinMind] 籌碼面跳過 {code}: {e}")
+            return None
+
+        from .realtime_types import ChipDistribution
+
+        today = datetime.now().date()
+        start_30d = (today - timedelta(days=30)).isoformat()
+        end_today = today.isoformat()
+        metrics: Dict[str, Any] = {}
+        latest_date = ""
+
+        # 三大法人買賣超（buy/sell 單位為「股」→ 換算為「張」）
+        try:
+            inst = self._call_with_cache(
+                "taiwan_stock_institutional_investors",
+                lambda: api.taiwan_stock_institutional_investors(
+                    stock_id=code, start_date=start_30d
+                ).to_dict(orient="records"),
+                stock_id=code,
+                start=start_30d,
+            ) or []
+            per_day: Dict[str, float] = defaultdict(float)
+            per_day_foreign: Dict[str, float] = defaultdict(float)
+            for r in inst:
+                d = str(r.get("date", ""))
+                if not d:
+                    continue
+                net = float(r.get("buy") or 0) - float(r.get("sell") or 0)
+                per_day[d] += net
+                if str(r.get("name", "")).lower().startswith("foreign"):
+                    per_day_foreign[d] += net
+            days_sorted = sorted(per_day.keys())
+            if days_sorted:
+                latest_date = days_sorted[-1]
+                last5 = days_sorted[-5:]
+                metrics["inst_net_5d_lots"] = int(round(sum(per_day[d] for d in last5) / 1000))
+                metrics["inst_net_5d_foreign_lots"] = int(
+                    round(sum(per_day_foreign.get(d, 0.0) for d in last5) / 1000)
+                )
+                # 連續同向天數（自最新往回；方向以三大法人合計淨買超符號判斷）
+                streak = 0
+                for d in reversed(days_sorted):
+                    v = per_day[d]
+                    if v > 0 and streak >= 0:
+                        streak += 1
+                    elif v < 0 and streak <= 0:
+                        streak -= 1
+                    else:
+                        break
+                metrics["inst_streak_days"] = streak
+        except Exception as e:
+            logger.warning(f"[FinMind] 取得三大法人買賣超失敗 {code}: {e}")
+
+        # 融資融券（餘額單位為「張」）
+        try:
+            margin = self._call_with_cache(
+                "taiwan_stock_margin_purchase_short_sale",
+                lambda: api.taiwan_stock_margin_purchase_short_sale(
+                    stock_id=code, start_date=start_30d, end_date=end_today
+                ).to_dict(orient="records"),
+                stock_id=code,
+                start=start_30d,
+                end=end_today,
+            ) or []
+            margin_sorted = sorted(margin, key=lambda r: str(r.get("date", "")))
+            if margin_sorted:
+                latest = margin_sorted[-1]
+                mb = latest.get("MarginPurchaseTodayBalance")
+                if mb is not None:
+                    metrics["margin_balance_lots"] = int(mb)
+                    if len(margin_sorted) >= 6:
+                        prev = margin_sorted[-6].get("MarginPurchaseTodayBalance")
+                        if prev is not None:
+                            metrics["margin_chg_5d_lots"] = int(mb) - int(prev)
+                sb = latest.get("ShortSaleTodayBalance")
+                if sb is not None:
+                    metrics["short_balance_lots"] = int(sb)
+                latest_date = latest_date or str(latest.get("date", ""))
+        except Exception as e:
+            logger.warning(f"[FinMind] 取得融資融券失敗 {code}: {e}")
+
+        # 外資持股比例（%）
+        try:
+            sh = self._call_with_cache(
+                "taiwan_stock_shareholding",
+                lambda: api.taiwan_stock_shareholding(
+                    stock_id=code, start_date=start_30d, end_date=end_today
+                ).to_dict(orient="records"),
+                stock_id=code,
+                start=start_30d,
+                end=end_today,
+            ) or []
+            sh_sorted = sorted(sh, key=lambda r: str(r.get("date", "")))
+            if sh_sorted:
+                latest = sh_sorted[-1]
+                pct = latest.get("ForeignInvestmentSharesRatio")
+                if pct is not None:
+                    metrics["foreign_holding_pct"] = round(float(pct), 2)
+                    if len(sh_sorted) >= 6:
+                        prev = sh_sorted[-6].get("ForeignInvestmentSharesRatio")
+                        if prev is not None:
+                            metrics["foreign_holding_chg_pp"] = round(float(pct) - float(prev), 2)
+                latest_date = latest_date or str(latest.get("date", ""))
+        except Exception as e:
+            logger.warning(f"[FinMind] 取得外資持股比例失敗 {code}: {e}")
+
+        if not metrics:
+            logger.warning(f"[籌碼分布] {code} FinMind 三類籌碼資料皆無")
+            return None
+
+        return ChipDistribution(
+            code=code,
+            date=latest_date,
+            source="finmind",
+            market_type="tw",
+            tw_metrics=metrics,
+        )
 
     # ---------- 工具 ----------
 
