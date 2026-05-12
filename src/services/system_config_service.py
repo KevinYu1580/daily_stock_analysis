@@ -43,6 +43,7 @@ from src.core.config_registry import (
     get_field_definition,
     get_registered_field_keys,
 )
+from src.notification_noise import validate_notification_timezone
 
 logger = logging.getLogger(__name__)
 
@@ -395,8 +396,8 @@ class SystemConfigService:
             "checks": checks,
         }
 
-    def export_desktop_env(self) -> Dict[str, Any]:
-        """Return the raw active `.env` content for desktop-only backup."""
+    def export_env(self) -> Dict[str, Any]:
+        """Return the raw active `.env` content for backup."""
         if self._manager.env_path.exists():
             content = self._manager.env_path.read_text(encoding="utf-8")
         else:
@@ -408,7 +409,11 @@ class SystemConfigService:
             "updated_at": self._manager.get_updated_at(),
         }
 
-    def import_desktop_env(
+    def export_desktop_env(self) -> Dict[str, Any]:
+        """Return the raw active `.env` content for desktop backup compatibility."""
+        return self.export_env()
+
+    def import_env(
         self,
         *,
         config_version: str,
@@ -425,6 +430,20 @@ class SystemConfigService:
             config_version=config_version,
             items=updates,
             mask_token="__DSA_IMPORT_LITERAL_MASK__",
+            reload_now=reload_now,
+        )
+
+    def import_desktop_env(
+        self,
+        *,
+        config_version: str,
+        content: str,
+        reload_now: bool = True,
+    ) -> Dict[str, Any]:
+        """Merge imported `.env` assignments for desktop backup compatibility."""
+        return self.import_env(
+            config_version=config_version,
+            content=content,
             reload_now=reload_now,
         )
 
@@ -1607,6 +1626,35 @@ class SystemConfigService:
                                 "actual": f"rule #{rule_index or 1}",
                             }
                         )
+
+        elif validation.get("pattern"):
+            pattern = validation["pattern"]
+            if not re.match(pattern, value.strip()):
+                issues.append(
+                    {
+                        "key": key,
+                        "code": "invalid_format",
+                        "message": "Value does not match the required format",
+                        "severity": "error",
+                        "expected": pattern,
+                        "actual": value,
+                    }
+                )
+
+        if validation.get("timezone") and value:
+            try:
+                validate_notification_timezone(value)
+            except ValueError as exc:
+                issues.append(
+                    {
+                        "key": key,
+                        "code": "invalid_timezone",
+                        "message": str(exc),
+                        "severity": "error",
+                        "expected": "valid IANA timezone or empty",
+                        "actual": value,
+                    }
+                )
 
         if "enum" in validation and value and value not in validation["enum"]:
             issues.append(
@@ -3000,6 +3048,21 @@ class SystemConfigService:
             )
         )
         issues.extend(SystemConfigService._validate_llm_runtime_selection(effective_map=effective_map))
+
+        if parse_env_bool(effective_map.get("NOTIFICATION_DAILY_DIGEST_ENABLED"), default=False):
+            issues.append(
+                {
+                    "key": "NOTIFICATION_DAILY_DIGEST_ENABLED",
+                    "code": "reserved_notification_daily_digest",
+                    "message": (
+                        "NOTIFICATION_DAILY_DIGEST_ENABLED is reserved; "
+                        "the current P4 implementation does not send daily digests."
+                    ),
+                    "severity": "warning",
+                    "expected": "reserved flag only",
+                    "actual": effective_map.get("NOTIFICATION_DAILY_DIGEST_ENABLED", ""),
+                }
+            )
 
         return issues
 

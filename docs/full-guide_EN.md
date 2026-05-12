@@ -50,12 +50,10 @@ Click the `Fork` button in the upper right corner.
 Go to your forked repo → `Settings` → `Secrets and variables` → `Actions` → `New repository secret`
 
 <div align="center">
-  <img src="../sources/secret_config.png" alt="GitHub Secrets Configuration" width="600">
+  <img src="assets/secret_config.png" alt="GitHub Secrets Configuration" width="600">
 </div>
 
 #### AI Model Configuration (Configure at Least One)
-
-> Note: The configuration below documents existing runtime provider support and compatibility boundaries; this update is documentation-alignment only and does not introduce new runtime implementation.
 
 | Secret Name | Description | Required |
 |------------|------|:----:|
@@ -105,7 +103,7 @@ Go to your forked repo → `Settings` → `Secrets and variables` → `Actions` 
 
 > *Note: Configure at least one channel; multiple channels will all receive notifications
 >
-> The default `daily_analysis.yml` in this repository only exports fixed Secret / Variable names. Arbitrary numbered env vars such as `STOCK_GROUP_1` and `EMAIL_GROUP_1` are not auto-injected into the job, so grouped email routing is not available in the stock workflow unless you explicitly extend the workflow's `env:` mapping in your own fork. Actions now maps `CUSTOM_WEBHOOK_BODY_TEMPLATE`, `WEBHOOK_VERIFY_SSL`, `FEISHU_WEBHOOK_SECRET`, `FEISHU_WEBHOOK_KEYWORD`, `PUSHPLUS_TOPIC`, and the P3 notification route keys; `MARKDOWN_TO_IMAGE_CHANNELS` and `MERGE_EMAIL_NOTIFICATION` remain behavior toggles outside the default workflow mapping.
+> The default `daily_analysis.yml` in this repository only exports fixed Secret / Variable names. Arbitrary numbered env vars such as `STOCK_GROUP_1` and `EMAIL_GROUP_1` are not auto-injected into the job, so grouped email routing is not available in the stock workflow unless you explicitly extend the workflow's `env:` mapping in your own fork. Actions now maps `CUSTOM_WEBHOOK_BODY_TEMPLATE`, `WEBHOOK_VERIFY_SSL`, `FEISHU_WEBHOOK_SECRET`, `FEISHU_WEBHOOK_KEYWORD`, `PUSHPLUS_TOPIC`, the P3 notification route keys, and the P4 notification noise-control keys; `MARKDOWN_TO_IMAGE_CHANNELS` and `MERGE_EMAIL_NOTIFICATION` remain behavior toggles outside the default workflow mapping.
 
 #### Push Behavior Configuration
 
@@ -123,6 +121,12 @@ Go to your forked repo → `Settings` → `Secrets and variables` → `Actions` 
 | `NOTIFICATION_REPORT_CHANNELS` | Report route channels for single-stock, aggregate daily, market review, merged push, and Feishu document success notifications. Empty means all configured channels | Optional |
 | `NOTIFICATION_ALERT_CHANNELS` | Alert route channels for EventMonitor notifications. Empty means all configured channels | Optional |
 | `NOTIFICATION_SYSTEM_ERROR_CHANNELS` | Reserved system_error route channels. No automatic system error producer is added in P3; empty means all configured channels | Optional |
+| `NOTIFICATION_DEDUP_TTL_SECONDS` | Dedup TTL in seconds. `0` disables dedup; the same stable dedup key sends only once within the TTL | Optional |
+| `NOTIFICATION_COOLDOWN_SECONDS` | Cooldown window in seconds. `0` disables cooldown; the same cooldown key is rate-limited within the window | Optional |
+| `NOTIFICATION_QUIET_HOURS` | Quiet-hours window in `HH:MM-HH:MM` format, supports overnight ranges. Empty disables quiet hours | Optional |
+| `NOTIFICATION_TIMEZONE` | IANA timezone for quiet hours, e.g. `Asia/Shanghai`. Empty follows `TZ` or the local system timezone | Optional |
+| `NOTIFICATION_MIN_SEVERITY` | Minimum severity: `info`, `warning`, `error`, `critical`. Empty keeps current behavior | Optional |
+| `NOTIFICATION_DAILY_DIGEST_ENABLED` | Reserved daily digest flag. The current implementation does not send or persist digests | Optional |
 
 #### Other Configuration
 
@@ -235,6 +239,12 @@ For the P0 notification baseline and diagnostics, see [Notification Baseline](no
 | `NOTIFICATION_REPORT_CHANNELS` | Report route channels, comma-separated. Allowed values: wechat,feishu,telegram,email,pushover,pushplus,serverchan3,custom,discord,slack,astrbot | Optional |
 | `NOTIFICATION_ALERT_CHANNELS` | Alert route channels, comma-separated. Empty keeps all configured channels | Optional |
 | `NOTIFICATION_SYSTEM_ERROR_CHANNELS` | Reserved system_error route channels, comma-separated. Empty keeps all configured channels | Optional |
+| `NOTIFICATION_DEDUP_TTL_SECONDS` | Dedup TTL in seconds. `0` disables dedup | Optional |
+| `NOTIFICATION_COOLDOWN_SECONDS` | Cooldown window in seconds. `0` disables cooldown | Optional |
+| `NOTIFICATION_QUIET_HOURS` | Quiet-hours window in `HH:MM-HH:MM` format, supports overnight ranges | Optional |
+| `NOTIFICATION_TIMEZONE` | Quiet-hours timezone, e.g. `Asia/Shanghai`; empty follows `TZ` or local system timezone | Optional |
+| `NOTIFICATION_MIN_SEVERITY` | Minimum severity: info, warning, error, critical. Empty keeps current behavior | Optional |
+| `NOTIFICATION_DAILY_DIGEST_ENABLED` | Reserved daily digest flag. It does not send digests yet | Optional |
 
 > Note: the default `daily_analysis` GitHub Actions workflow only maps fixed variable names. It does not automatically import arbitrary numbered variables such as `STOCK_GROUP_N` / `EMAIL_GROUP_N`. This feature therefore works in local `.env`, Docker, or any runtime where you explicitly inject those variables.
 
@@ -317,6 +327,8 @@ For the P0 notification baseline and diagnostics, see [Notification Baseline](no
 | `MARKET_REVIEW_REGION` | Market review region: cn (A-shares), hk (HK stocks), us (US stocks), both (all three markets) | `cn` |
 | `SCHEDULE_ENABLED` | Enable scheduled tasks | `false` |
 | `SCHEDULE_TIME` | Scheduled execution time | `18:00` |
+| `SCHEDULE_RUN_IMMEDIATELY` | Run once immediately when scheduler mode starts; when unset it keeps following the legacy `RUN_IMMEDIATELY` runtime override | `true` |
+| `RUN_IMMEDIATELY` | Run once immediately for non-scheduler startup; also acts as the legacy fallback when `SCHEDULE_RUN_IMMEDIATELY` is unset | `true` |
 | `LOG_DIR` | Log directory | `./logs` |
 
 > Behavior notes:
@@ -324,6 +336,7 @@ For the P0 notification baseline and diagnostics, see [Notification Baseline](no
 > - TickFlow behavior is capability-based rather than just key-based: limited plans can still enhance main CN indices, while plans with `CN_Equity_A` universe query support also enhance market breadth.
 > - The official quickstart documents `quotes.get(universes=["CN_Equity_A"])`, but online smoke tests confirmed two additional real-world constraints: universe access depends on plan permissions, and `quotes.get(symbols=[...])` has a per-request symbol limit.
 > - TickFlow currently returns `change_pct` / `amplitude` as ratio values; this integration normalizes them to the project's percent convention so they match AkShare / Tushare / efinance semantics.
+> - In scheduler mode, if runtime env explicitly sets `RUN_IMMEDIATELY` but does not set `SCHEDULE_RUN_IMMEDIATELY`, the scheduler keeps inheriting the legacy runtime override instead of being pulled back to a persisted `.env` alias value.
 > - CN market review reports now use a post-market workstation layout with fixed market light, market temperature, index detail, sector Top tables, news catalysts, next-session plan, and risk sections. Missing data sources degrade by omitting or simplifying only the affected block.
 > - Per-stock analysis, realtime quote priority, and sector rankings fallback remain unchanged.
 
@@ -453,6 +466,10 @@ Recommended host mappings:
 - `./logs:/app/logs` for logs
 - `./reports:/app/reports` for generated reports
 - `./strategies:/app/strategies:ro` for custom strategy YAML files
+
+Official Docker images automatically create and fix ownership for the `/app/data`, `/app/logs`, and `/app/reports` mounts during startup, then drop privileges to the non-root `dsa` user inside the container (UID/GID `1000:1000`). Normal Docker / Compose deployments do not require manual host-side `chown` or `chmod`.
+
+If you override the runtime user with `--user` or Compose `user:`, or use read-only mounts, rootless Docker, NFS, or another storage environment that blocks `chown`, the automatic repair may not apply. In that case, make sure the actual runtime user can write to `data`, `logs`, and `reports`, or use writable volumes.
 
 Optional static asset override:
 
@@ -781,6 +798,13 @@ System defaults to AkShare (free), also supports other data sources:
 - Supports US/HK stock data
 - US stock historical and real-time data both use YFinance exclusively to avoid technical indicator errors from akshare's US stock adjustment issues
 
+### Longbridge
+- Optional fallback for US/HK stocks, mainly used to supplement fields that YFinance may miss
+- Configure `LONGBRIDGE_APP_KEY`, `LONGBRIDGE_APP_SECRET`, and `LONGBRIDGE_ACCESS_TOKEN`
+- Optional knobs: `LONGBRIDGE_STATIC_INFO_TTL_SECONDS` (default `86400`) and `LONGBRIDGE_CONNECTION_COOLDOWN_SECONDS` (default `15`)
+- If credentials are absent, the optional Longbridge fetcher is not instantiated
+- When runtime errors such as `client is closed`, `context closed`, or `connection closed` occur, Longbridge enters a short cooldown window and US/HK daily or realtime requests automatically fall back to YFinance / AkShare instead of reconnecting on every request
+
 ---
 
 ## Advanced Features
@@ -793,7 +817,7 @@ Use `hk` prefix for HK stock codes:
 STOCK_LIST=600519,hk00700,hk01810
 ```
 
-HK daily history skips efinance, pytdx, baostock, and other built-in providers that do not support HK daily data, avoiding mismatches between HK symbols and non-HK market data. AkShare/Tushare/YFinance/Longbridge continue to provide HK fallback paths.
+HK daily history skips efinance, pytdx, baostock, and other built-in providers that do not support HK daily data, avoiding mismatches between HK symbols and non-HK market data. AkShare/Tushare/YFinance/Longbridge continue to provide HK fallback paths. If Longbridge is inside its connection cooldown window, the route temporarily skips it and continues with the remaining HK-capable fallbacks.
 
 ### Multi-Model Switching
 
@@ -865,7 +889,7 @@ You can tune the behavior in `.env`:
 Single-stock reports calibrate operation advice with support/resistance, volume/chip context, main-force capital flow, and risk events. This reduces direct buy/sell flips caused only by one-day price movement or score thresholds. When price is between support and resistance and capital flow is unclear, the report prefers neutral actionable wording such as hold, range-bound watch, or shakeout watch. Buy calls require support confirmation or a valid resistance breakout with volume/capital-flow confirmation; sell/reduce calls require support failure, sustained outflow, or clearly elevated risk.
 This post-processing update only adjusts advisory wording and stability logic and does not change the configured LLM model/provider routing semantics (including LiteLLM, providers, or API model settings).
 Compatibility check result: decision operability and runtime post-processing paths are changed, while model/provider/API configuration and persistence semantics remain unchanged; the compatibility boundary is now in analysis/pipeline/agent intent inference and stabilization mapping.
-Verification trail: this PR updates runtime behavior in `src/analyzer.py`, `src/core/pipeline.py`, `src/core/backtest_engine.py`, `src/report_language.py`, and `src/agent` decision-path modules (with corresponding tests in `tests/test_backtest_engine.py`, `tests/test_analyzer_news_prompt.py`, `tests/test_decision_stability.py`, and `tests/test_agent_pipeline.py`); it does not add/remove runtime config fields or config-cleanup logic in `src/config.py` or persistence code paths.
+Verification trail: the runtime behavior is implemented in `src/analyzer.py`, `src/core/pipeline.py`, `src/core/backtest_engine.py`, `src/report_language.py`, and `src/agent` decision-path modules (with corresponding tests in `tests/test_backtest_engine.py`, `tests/test_analyzer_news_prompt.py`, `tests/test_decision_stability.py`, and `tests/test_agent_pipeline.py`); it does not add/remove runtime config fields or config-cleanup logic in `src/config.py` or persistence code paths.
 
 ## Backtesting
 
@@ -961,7 +985,7 @@ FastAPI provides RESTful API service for configuration management and triggering
 | `/docs` | GET | API Swagger documentation |
 
 > Note: `POST /api/v1/analysis/analyze` supports only one stock when `async_mode=false`; batch `stock_codes` requires `async_mode=true`. The async `202` response returns a single `task_id` for one stock, or an `accepted` / `duplicates` summary for batch requests.
-> Note: `POST /api/v1/analysis/market-review` follows the same runtime configuration path as CLI/Bot market review (`GeminiAnalyzer(config=...)`, search setup, and prompt/rendering pipeline). This PR extends compatibility by prioritizing `litellm_model` and `llm_model_list`, then falling back to existing legacy keys (`GEMINI_*`, `OPENAI_*`, `ANTHROPIC_*`, `DEEPSEEK_*`) when those are not set; provider names, Base URL, and LiteLLM routing semantics are otherwise unchanged.  
+> Note: `POST /api/v1/analysis/market-review` follows the same runtime configuration path as CLI/Bot market review (`GeminiAnalyzer(config=...)`, search setup, and prompt/rendering pipeline). The provider compatibility path prioritizes `litellm_model` and `llm_model_list`, then falls back to existing legacy keys (`GEMINI_*`, `OPENAI_*`, `ANTHROPIC_*`, `DEEPSEEK_*`) when those are not set; provider names, Base URL, and LiteLLM routing semantics are otherwise unchanged.
 > Audit note: priority and fallback are defined by `Config._load_from_env()` in `src/config.py` (`LITELLM_CONFIG` > `LLM_CHANNELS` > legacy). Regression coverage is in `tests/test_llm_channel_config.py` (configuration source parsing) and `tests/test_market_review_runtime.py` (shared runtime assembly). The endpoint lock is process/host-level only; multi-instance deployments still need external distributed idempotency controls.
 > Note: when `/api/v1/analysis/market-review` returns a `task_id`, the WebUI polls `GET /api/v1/analysis/status/{task_id}`. The UI renders clear `pending/processing` progress, shows completion feedback when status becomes `completed`, and surfaces `error` content on `failed`.
 
