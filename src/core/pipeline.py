@@ -12,6 +12,7 @@ A股自选股智能分析系统 - 核心分析流水线
 """
 
 import logging
+import os
 import threading
 import time
 import uuid
@@ -122,6 +123,7 @@ class StockAnalysisPipeline:
                 minimax_keys=self.config.minimax_api_keys,
                 searxng_base_urls=self.config.searxng_base_urls,
                 searxng_public_instances_enabled=self.config.searxng_public_instances_enabled,
+                finmind_token=os.getenv("FINMIND_TOKEN"),
                 news_max_age_days=self.config.news_max_age_days,
                 news_strategy_profile=getattr(self.config, "news_strategy_profile", "short"),
             )
@@ -297,7 +299,13 @@ class StockAnalysisPipeline:
             chip_data = None
             try:
                 chip_data = self.fetcher_manager.get_chip_distribution(code)
-                if chip_data:
+                if chip_data and getattr(chip_data, "market_type", "cn") == "tw":
+                    tm = chip_data.tw_metrics or {}
+                    logger.info(
+                        f"{stock_name}({code}) 台股筹码面: 外资持股={tm.get('foreign_holding_pct')}%, "
+                        f"三大法人近5日={tm.get('inst_net_5d_lots')}张, 融资余额={tm.get('margin_balance_lots')}张"
+                    )
+                elif chip_data:
                     logger.info(f"{stock_name}({code}) 筹码分布: 获利比例={chip_data.profit_ratio:.1%}, "
                               f"90%集中度={chip_data.concentration_90:.2%}")
                 else:
@@ -591,13 +599,22 @@ class StockAnalysisPipeline:
         # 添加筹码分布
         if chip_data:
             current_price = getattr(realtime_quote, 'price', 0) if realtime_quote else 0
-            enhanced['chip'] = {
-                'profit_ratio': chip_data.profit_ratio,
-                'avg_cost': chip_data.avg_cost,
-                'concentration_90': chip_data.concentration_90,
-                'concentration_70': chip_data.concentration_70,
-                'chip_status': chip_data.get_chip_status(current_price or 0),
-            }
+            if getattr(chip_data, "market_type", "cn") == "tw":
+                # 台股筹码面：三大法人买卖超 / 融资融券 / 外资持股比例
+                enhanced['chip'] = {
+                    'market_type': 'tw',
+                    'tw_metrics': dict(chip_data.tw_metrics or {}),
+                    'chip_status': chip_data.get_chip_status(current_price or 0),
+                }
+            else:
+                enhanced['chip'] = {
+                    'market_type': 'cn',
+                    'profit_ratio': chip_data.profit_ratio,
+                    'avg_cost': chip_data.avg_cost,
+                    'concentration_90': chip_data.concentration_90,
+                    'concentration_70': chip_data.concentration_70,
+                    'chip_status': chip_data.get_chip_status(current_price or 0),
+                }
         
         # 添加趋势分析结果
         if trend_result:

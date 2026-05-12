@@ -12,6 +12,7 @@ A股自选股智能分析系统 - 搜索服务模块
 """
 
 import logging
+import os
 import re
 import threading
 import time
@@ -2082,6 +2083,134 @@ class SearXNGSearchProvider(BaseSearchProvider):
         )
 
 
+class FinMindNewsSearchProvider(BaseSearchProvider):
+    """FinMind 台股新聞來源（taiwan_stock_news）。
+
+    與其他 provider 不同，本來源不是通用網頁搜尋，而是依「台股代碼」拉新聞，
+    因此僅在能從 query 解析出台股代碼（或呼叫方透過 ``stock_code`` 傳入）時有結果；
+    非台股 / 大盤新聞 / 解析不到代碼時回 ``success=False``，讓上層繼續嘗試後續網頁引擎。
+
+    需 ``FINMIND_TOKEN``；缺 token 或未安裝 FinMind 套件時 ``is_available`` 為 False。
+    """
+
+    _TW_CODE_RE = re.compile(r"(?<!\d)(\d{4})(?!\d)")
+
+    def __init__(self, token: Optional[str] = None):
+        token = (token or "").strip()
+        super().__init__([token] if token else [], "FinMindNews")
+        self._loader = None
+
+    def _ensure_loader(self):
+        if self._loader is not None:
+            return self._loader
+        token = self._api_keys[0] if self._api_keys else ""
+        if not token:
+            raise RuntimeError("FINMIND_TOKEN 未設定")
+        try:
+            from FinMind.data import DataLoader
+        except ImportError as e:
+            raise RuntimeError("未安裝 FinMind 套件：pip install FinMind") from e
+        loader = DataLoader()
+        try:
+            loader.login_by_token(api_token=token)
+        except Exception as e:  # noqa: BLE001 - 匿名額度仍可用
+            logger.warning("[FinMindNews] login_by_token 失敗，改用匿名額度: %s", e)
+        self._loader = loader
+        return loader
+
+    @staticmethod
+    def _resolve_tw_code(query: str, stock_code: Optional[str]) -> Optional[str]:
+        # 優先用呼叫方明確傳入的代碼
+        if stock_code:
+            try:
+                from data_provider.tw_market import is_tw_stock_code, normalize_tw_code
+            except ImportError:
+                return None
+            if is_tw_stock_code(stock_code):
+                return normalize_tw_code(stock_code)
+            return None
+        # 否則從 query 內找 4 碼數字（查詢模板多半含 {stock_code}）
+        for m in FinMindNewsSearchProvider._TW_CODE_RE.finditer(query or ""):
+            cand = m.group(1)
+            try:
+                from data_provider.tw_market import is_tw_stock_code, normalize_tw_code
+            except ImportError:
+                return None
+            if is_tw_stock_code(cand):
+                return normalize_tw_code(cand)
+        return None
+
+    def _do_search(
+        self,
+        query: str,
+        api_key: str,
+        max_results: int,
+        days: int = 7,
+        stock_code: Optional[str] = None,
+    ) -> SearchResponse:
+        code = self._resolve_tw_code(query, stock_code)
+        if not code:
+            return SearchResponse(
+                query=query,
+                results=[],
+                provider=self.name,
+                success=False,
+                error_message="非台股或未解析到台股代碼，FinMind 台股新聞不適用",
+            )
+        loader = self._ensure_loader()
+        start_date = (datetime.now().date() - timedelta(days=max(1, days))).isoformat()
+        df = loader.taiwan_stock_news(stock_id=code, start_date=start_date)
+        records = df.to_dict(orient="records") if df is not None and not df.empty else []
+        # 依日期新→舊排序，去重（同標題只留最新一則）
+        records.sort(key=lambda r: str(r.get("date", "")), reverse=True)
+        seen_titles = set()
+        results: List[SearchResult] = []
+        for r in records:
+            title = str(r.get("title", "")).strip()
+            if not title or title in seen_titles:
+                continue
+            seen_titles.add(title)
+            raw_date = str(r.get("date", "")).strip()
+            published = raw_date.split(" ")[0] if raw_date else None
+            results.append(SearchResult(
+                title=title,
+                snippet=title,  # FinMind 不提供摘要，以標題代替
+                url=str(r.get("link", "")).strip(),
+                source=str(r.get("source", "")).strip() or "FinMind",
+                published_date=published,
+            ))
+            if len(results) >= max_results:
+                break
+        return SearchResponse(
+            query=query,
+            results=results,
+            provider=self.name,
+            success=True,
+            error_message=None if results else "FinMind 台股新聞無結果",
+        )
+
+    def search(
+        self,
+        query: str,
+        max_results: int = 5,
+        days: int = 7,
+        stock_code: Optional[str] = None,
+        **kwargs: Any,
+    ) -> SearchResponse:
+        # 解析不到台股代碼時直接让位，不计入 API Key 错误（避免污染熔断计数与日志）
+        if not self._resolve_tw_code(query, stock_code):
+            return SearchResponse(
+                query=query,
+                results=[],
+                provider=self.name,
+                success=False,
+                error_message="非台股或未解析到台股代碼，FinMind 台股新聞不適用",
+            )
+        return self._execute_search(
+            query, max_results=max_results, days=days, stock_code=stock_code
+        )
+
+
 class SearchService:
     """
     搜索服务
@@ -2127,6 +2256,7 @@ class SearchService:
         minimax_keys: Optional[List[str]] = None,
         searxng_base_urls: Optional[List[str]] = None,
         searxng_public_instances_enabled: bool = True,
+        finmind_token: Optional[str] = None,
         news_max_age_days: int = 3,
         news_strategy_profile: str = "short",
     ):
@@ -2142,6 +2272,7 @@ class SearchService:
             minimax_keys: MiniMax API Key 列表
             searxng_base_urls: SearXNG 实例地址列表（自建无配额兜底）
             searxng_public_instances_enabled: 未配置自建实例时，是否自动使用公共 SearXNG 实例
+            finmind_token: FinMind API token；提供时启用台股新闻来源（taiwan_stock_news），台股优先
             news_max_age_days: 新闻最大时效（天）
             news_strategy_profile: 新闻窗口策略档位（ultra_short/short/medium/long）
         """
@@ -2205,7 +2336,15 @@ class SearchService:
         if anspire_keys:
             self._providers.insert(0, AnspireSearchProvider(anspire_keys))
             logger.info(f"已配置 Anspire Search 搜索，共 {len(anspire_keys)} 个 API Key")
-            
+
+        # 0. FinMind 台股新闻来源（依台股代码直接拉新闻，台股最可靠来源；
+        #    非台股 / 大盘新闻自动让位给后续网页引擎）。需 FINMIND_TOKEN。
+        if finmind_token:
+            finmind_news_provider = FinMindNewsSearchProvider(finmind_token)
+            if finmind_news_provider.is_available:
+                self._providers.insert(0, finmind_news_provider)
+                logger.info("已启用 FinMind 台股新闻来源（台股优先）")
+
         if not self._providers:
             logger.warning("未配置任何搜索能力，新闻搜索功能将不可用")
 
@@ -2811,6 +2950,8 @@ class SearchService:
                             prefer_chinese=prefer_chinese,
                         )
                     )
+                elif isinstance(provider, FinMindNewsSearchProvider):
+                    search_kwargs["stock_code"] = stock_code
 
                 response = provider.search(query, provider_max_results, days=search_days, **search_kwargs)
                 filtered_response = self._filter_news_response(
@@ -3169,7 +3310,14 @@ class SearchService:
             
             logger.info(f"[情报搜索] {dim['desc']}: 使用 {provider.name}")
 
-            if isinstance(provider, TavilySearchProvider) and dim.get('tavily_topic'):
+            if isinstance(provider, FinMindNewsSearchProvider):
+                response = provider.search(
+                    dim['query'],
+                    max_results=provider_max_results,
+                    days=search_days,
+                    stock_code=stock_code,
+                )
+            elif isinstance(provider, TavilySearchProvider) and dim.get('tavily_topic'):
                 response = provider.search(
                     dim['query'],
                     max_results=provider_max_results,
@@ -3492,6 +3640,7 @@ def get_search_service() -> SearchService:
                     minimax_keys=config.minimax_api_keys,
                     searxng_base_urls=config.searxng_base_urls,
                     searxng_public_instances_enabled=config.searxng_public_instances_enabled,
+                    finmind_token=os.getenv("FINMIND_TOKEN"),
                     news_max_age_days=config.news_max_age_days,
                     news_strategy_profile=getattr(config, "news_strategy_profile", "short"),
                 )

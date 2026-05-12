@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 <!-- 新条目格式：- [类型] 描述（类型取值：新功能/改进/修复/文档/测试/chore）-->
 <!-- 每条独立一行追加到本段末尾，无需分类标题，合并时冲突最小 -->
+- [新功能] 配置 `FINMIND_TOKEN` 时启用 FinMind 台股新闻来源（taiwan_stock_news），台股个股新闻优先走 FinMind，非台股 / 大盘新闻仍走原有网页搜索引擎
+- [改进] 台股「筹码分布」改用 FinMind 台股筹码面数据（三大法人买卖超 / 融资融券 / 外资持股比例），不再调用仅适用于 A 股的成本分布接口；A 股式的获利比例 / 平均成本 / 集中度字段对台股显示为 N/A，筹码健康改由法人买卖方向、融资余额变化与外资持股变化推导
 - [改进] 移除 A 股 / 港股支援，資料源、市場分析與前端聚焦台股與美股
 - [文档] README / 繁中 / 英文文档与 `.env.example`、`requirements.txt`、`daily_analysis.yml` 同步收敛为台股 / 美股范围，移除 akshare/tushare/efinance/pytdx/baostock/longbridge/tickflow 等数据源说明
 - [改进] Docker 镜像支持非 root 用户 (`dsa`, UID 1000) 执行，并增强 `Dockerfile` 安全性与构建稳健性。
