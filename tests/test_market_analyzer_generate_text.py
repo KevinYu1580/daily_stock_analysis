@@ -573,7 +573,7 @@ class TestAnalyzerGenerateText:
 class TestMarketAnalyzerBypassFix:
     def _make_market_analyzer_with_mock_generate_text(self, return_value="复盘报告"):
         """Return a MarketAnalyzer whose embedded Analyzer.generate_text is mocked."""
-        from src.core.market_profile import CN_PROFILE
+        from src.core.market_profile import TW_PROFILE
         from src.core.market_strategy import get_market_strategy_blueprint
 
         with patch("src.analyzer.get_config") as mock_cfg, \
@@ -587,7 +587,7 @@ class TestMarketAnalyzerBypassFix:
             cfg.deepseek_api_keys = []
             cfg.llm_model_list = []
             cfg.openai_base_url = None
-            cfg.market_review_region = "cn"
+            cfg.market_review_region = "tw"
             cfg.report_language = "zh"
             mock_cfg.return_value = cfg
             mock_cfg2.return_value = cfg
@@ -603,9 +603,9 @@ class TestMarketAnalyzerBypassFix:
             ma = MarketAnalyzer.__new__(MarketAnalyzer)
             ma.analyzer = analyzer
             ma.config = cfg
-            ma.profile = CN_PROFILE
-            ma.strategy = get_market_strategy_blueprint("cn")
-            ma.region = "cn"
+            ma.profile = TW_PROFILE
+            ma.strategy = get_market_strategy_blueprint("tw")
+            ma.region = "tw"
             return ma
 
     def test_no_access_to_private_model_attribute(self):
@@ -667,7 +667,7 @@ class TestMarketAnalyzerBypassFix:
         assert kwargs["max_tokens"] == 8192
         assert kwargs["temperature"] == 0.7
 
-    def test_generate_template_review_uses_english_shell_for_cn_when_report_language_is_en(self):
+    def test_generate_template_review_uses_english_shell_for_tw_when_report_language_is_en(self):
         from src.market_analyzer import MarketOverview, MarketIndex
 
         ma = self._make_market_analyzer_with_mock_generate_text(return_value=None)
@@ -676,30 +676,22 @@ class TestMarketAnalyzerBypassFix:
             date="2026-03-05",
             indices=[
                 MarketIndex(
-                    code="000001",
-                    name="上证指数",
-                    current=3300.0,
-                    change=12.0,
-                    change_pct=0.36,
+                    code="TWII",
+                    name="加權指數",
+                    current=22000.0,
+                    change=120.0,
+                    change_pct=0.55,
                 )
             ],
-            up_count=3200,
-            down_count=1800,
-            limit_up_count=88,
-            limit_down_count=5,
-            total_amount=14567.0,
-            top_sectors=[{"name": "AI算力", "change_pct": 3.25}],
-            bottom_sectors=[{"name": "煤炭", "change_pct": -1.12}],
         )
 
         result = ma.generate_market_review(overview, [])
 
-        assert "A-share Market Recap" in result
+        assert "Taiwan Market Recap" in result
         assert "### 1. Market Summary" in result
-        assert "### 3. Breadth & Liquidity" in result
-        assert "Turnover (CNY 100m)" in result
-        assert "### 4. Sector Highlights" in result
-        assert "### 6. Strategy Framework" in result
+        assert "Today's Taiwan market showed" in result
+        # TW strategy markdown block is injected (dimension names from TW_BLUEPRINT)
+        assert "趨勢結構" in result
         assert "### 一、市场总结" not in result
 
     def test_generate_template_review_keeps_chinese_shell_for_us_when_report_language_is_default(self):
@@ -773,8 +765,8 @@ Sector text.
         result = ma._inject_data_into_review(review, overview)
 
         assert "Advancers **3200**" in result
-        assert "Turnover **14567** (CNY 100m)" in result
-        assert "| Index | Last | Change % | Open | High | Low | Amplitude | Turnover (CNY 100m) |" in result
+        assert "Turnover **14567** (TWD 100m)" in result
+        assert "| Index | Last | Change % | Open | High | Low | Amplitude | Turnover (TWD 100m) |" in result
         assert "#### Leading Sectors" in result
         assert "| 1 | AI算力 | +3.25% |" in result
         assert "#### Lagging Sectors" in result
@@ -845,7 +837,7 @@ Sector text.
 
         ma = MarketAnalyzer.__new__(MarketAnalyzer)
         ma.config = SimpleNamespace(report_language="zh")
-        ma.region = "cn"
+        ma.region = "tw"
         long_snippet = (
             "复盘必读 2026-05-06 复盘的意义在于更清晰地把握市场脉搏，"
             "综合描述 A 股三大指数今日集体反弹，成交额放大，科技成长方向领涨。"
@@ -871,7 +863,7 @@ Sector text.
 
         ma = MarketAnalyzer.__new__(MarketAnalyzer)
         ma.config = SimpleNamespace(report_language="zh")
-        ma.region = "cn"
+        ma.region = "tw"
 
         result = ma._build_news_block([
             {
