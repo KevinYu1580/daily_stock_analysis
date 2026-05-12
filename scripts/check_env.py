@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ===================================
-A股自选股智能分析系统 - 环境验证测试
+台股/美股自选股智能分析系统 - 环境验证测试
 ===================================
 
 用于验证 .env 配置是否正确，包括：
@@ -180,7 +180,7 @@ def view_database():
     return True
 
 
-def check_data_fetch(stock_code: str = "600519"):
+def check_data_fetch(stock_code: str = "2330"):
     """测试数据获取"""
     print_header("3. 数据获取测试")
     
@@ -441,7 +441,7 @@ def query_stock_data(stock_code: str, days: int = 10):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='A股自选股智能分析系统 - 环境验证测试',
+        description='台股/美股自选股智能分析系统 - 环境验证测试',
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     
