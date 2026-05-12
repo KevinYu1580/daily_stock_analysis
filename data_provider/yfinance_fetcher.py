@@ -9,7 +9,7 @@ YfinanceFetcher - 兜底数据源 (Priority 4)
 定位：当所有国内数据源都失败时的最后保障
 
 关键策略：
-1. 自动将 A 股代码转换为 yfinance 格式（.SS / .SZ）
+1. 自动将台股代码转换为 yfinance 格式（.TW / .TWO），美股 ticker 原样使用
 2. 处理 Yahoo Finance 的数据格式差异
 3. 失败后指数退避重试
 """
@@ -31,7 +31,7 @@ from tenacity import (
     before_sleep_log,
 )
 
-from .base import BaseFetcher, DataFetchError, STANDARD_COLUMNS, is_bse_code
+from .base import BaseFetcher, DataFetchError, STANDARD_COLUMNS
 from .realtime_types import UnifiedRealtimeQuote, RealtimeSource
 from .tw_market import (
     get_tw_index_yf_symbol,
@@ -73,7 +73,7 @@ class YfinanceFetcher(BaseFetcher):
     - 失败后指数退避重试
 
     注意事项：
-    - A 股数据可能有延迟
+    - 部分数据可能有延迟
     - 某些股票可能无数据
     - 数据精度可能与国内源略有差异
     """
@@ -87,27 +87,19 @@ class YfinanceFetcher(BaseFetcher):
 
     def _convert_stock_code(self, stock_code: str) -> str:
         """
-        转换股票代码为 Yahoo Finance 格式
+        转换股票代码为 Yahoo Finance 格式（仅台股 / 美股）
 
-        Yahoo Finance 代码格式：
-        - A股沪市：600519.SS (Shanghai Stock Exchange)
-        - A股深市：000001.SZ (Shenzhen Stock Exchange)
-        - 港股：0700.HK (Hong Kong Stock Exchange)
-        - 美股：AAPL, TSLA, GOOGL (无需后缀)
-
-        Args:
-            stock_code: 原始代码，如 '600519', 'hk00700', 'AAPL'
-
-        Returns:
-            Yahoo Finance 格式代码
+        - 美股指数：SPX -> ^GSPC 等
+        - 美股个股：AAPL -> AAPL（原样）
+        - 台股指数：TWII -> ^TWII、TWO -> ^TWOII、TW50 -> 0050.TW
+        - 台股个股：2330 / tw2330 / 2330.TW -> 2330.TW（上柜用 .TWO）
+        其他（已是 yfinance 符号等）原样返回。
 
         Examples:
-            >>> fetcher._convert_stock_code('600519')
-            '600519.SS'
-            >>> fetcher._convert_stock_code('hk00700')
-            '0700.HK'
             >>> fetcher._convert_stock_code('AAPL')
             'AAPL'
+            >>> fetcher._convert_stock_code('2330')
+            '2330.TW'
         """
         code = stock_code.strip().upper()
 
@@ -128,46 +120,14 @@ class YfinanceFetcher(BaseFetcher):
             logger.debug(f"識別為台股指數: {code} -> {tw_yf_symbol}")
             return tw_yf_symbol
 
-        # 台股：純 4 碼數字 / tw 前綴 / .TW(.TWO) 後綴
+        # 台股：純 4~5 碼數字 / tw 前綴 / .TW(.TWO) 後綴
         if is_tw_stock_code(code):
             yf_code = to_tw_yf_code(code)
             logger.debug(f"轉換台股代碼: {stock_code} -> {yf_code}")
             return yf_code
 
-        # 港股：hk前缀 -> .HK后缀
-        if code.startswith('HK'):
-            hk_code = code[2:].lstrip('0') or '0'  # 去除前导0，但保留至少一个0
-            hk_code = hk_code.zfill(4)  # 补齐到4位
-            logger.debug(f"转换港股代码: {stock_code} -> {hk_code}.HK")
-            return f"{hk_code}.HK"
-
-        # 已经包含后缀的情况
-        if '.SS' in code or '.SZ' in code or '.HK' in code or '.BJ' in code:
-            return code
-
-        # 去除可能的 .SH 后缀
-        code = code.replace('.SH', '')
-
-        # ETF: Shanghai ETF (51xx, 52xx, 56xx, 58xx) -> .SS; Shenzhen ETF (15xx, 16xx, 18xx) -> .SZ
-        if len(code) == 6:
-            if code.startswith(('51', '52', '56', '58')):
-                return f"{code}.SS"
-            if code.startswith(('15', '16', '18')):
-                return f"{code}.SZ"
-
-        # BSE (Beijing Stock Exchange): 8xxxxx, 4xxxxx, 920xxx
-        if is_bse_code(code):
-            base = code.split('.')[0] if '.' in code else code
-            return f"{base}.BJ"
-
-        # A股：根据代码前缀判断市场
-        if code.startswith(('600', '601', '603', '688')):
-            return f"{code}.SS"
-        elif code.startswith(('000', '002', '300')):
-            return f"{code}.SZ"
-        else:
-            logger.warning(f"无法确定股票 {code} 的市场，默认使用深市")
-            return f"{code}.SZ"
+        # 已是 yfinance 符号或未识别：原样返回，由 yfinance 自行判断
+        return code
 
     @retry(
         stop=stop_after_attempt(3),
@@ -286,9 +246,9 @@ class YfinanceFetcher(BaseFetcher):
 
         Args:
             yf: yfinance 模块引用
-            yf_code: yfinance 使用的代码（如 '000001.SS'、'^GSPC'）
+            yf_code: yfinance 使用的代码（如 '2330.TW'、'^GSPC'）
             name: 指数显示名称
-            return_code: 写入结果 dict 的 code 字段（如 'sh000001'、'SPX'）
+            return_code: 写入结果 dict 的 code 字段（如 'TWII'、'SPX'）
 
         Returns:
             行情字典，失败时返回 None
@@ -323,50 +283,16 @@ class YfinanceFetcher(BaseFetcher):
             'amplitude': amplitude,
         }
 
-    def get_main_indices(self, region: str = "cn") -> Optional[List[Dict[str, Any]]]:
+    def get_main_indices(self, region: str = "tw") -> Optional[List[Dict[str, Any]]]:
         """
-        获取主要指数行情 (Yahoo Finance)，支持 A 股、美股与港股。
-        region=us 时委托给 _get_us_main_indices。
-        region=hk 时委托给 _get_hk_main_indices。
+        获取主要指数行情 (Yahoo Finance)，仅支持台股与美股。
+        region=us 时委托给 _get_us_main_indices，其余（含 tw）委托给 _get_tw_main_indices。
         """
         import yfinance as yf
 
         if region == "us":
             return self._get_us_main_indices(yf)
-        if region == "hk":
-            return self._get_hk_main_indices(yf)
-        if region == "tw":
-            return self._get_tw_main_indices(yf)
-
-        # A 股指数：akshare 代码 -> (yfinance 代码, 显示名称)
-        yf_mapping = {
-            'sh000001': ('000001.SS', '上证指数'),
-            'sz399001': ('399001.SZ', '深证成指'),
-            'sz399006': ('399006.SZ', '创业板指'),
-            'sh000688': ('000688.SS', '科创50'),
-            'sh000016': ('000016.SS', '上证50'),
-            'sh000300': ('000300.SS', '沪深300'),
-        }
-
-        results = []
-        try:
-            for ak_code, (yf_code, name) in yf_mapping.items():
-                try:
-                    item = self._fetch_yf_ticker_data(yf, yf_code, name, ak_code)
-                    if item:
-                        results.append(item)
-                        logger.debug(f"[Yfinance] 获取指数 {name} 成功")
-                except Exception as e:
-                    logger.warning(f"[Yfinance] 获取指数 {name} 失败: {e}")
-
-            if results:
-                logger.info(f"[Yfinance] 成功获取 {len(results)} 个 A 股指数行情")
-                return results
-
-        except Exception as e:
-            logger.error(f"[Yfinance] 获取 A 股指数行情失败: {e}")
-
-        return None
+        return self._get_tw_main_indices(yf)
 
     def _get_us_main_indices(self, yf) -> Optional[List[Dict[str, Any]]]:
         """获取美股主要指数行情（SPX、IXIC、DJI、VIX），复用 _fetch_yf_ticker_data"""
@@ -395,37 +321,6 @@ class YfinanceFetcher(BaseFetcher):
 
         return None
 
-    def _get_hk_main_indices(self, yf) -> Optional[List[Dict[str, Any]]]:
-        """获取港股主要指数行情（HSI、HSTECH、HSCEI），复用 _fetch_yf_ticker_data"""
-        # Yahoo Finance 港股指数符号映射：
-        # - HSI -> ^HSI
-        # - HSTECH -> HSTECH.HK（不是 ^HSTECH）
-        # - HSCEI -> ^HSCE（不是 ^HSCEI）
-        # 该映射由离线单测 tests/test_yfinance_hk_indices.py 固化，避免在线依赖导致非确定性失败。
-        hk_indices = {
-            'HSI': ('^HSI', '恒生指数'),
-            'HSTECH': ('HSTECH.HK', '恒生科技指数'),
-            'HSCEI': ('^HSCE', '国企指数'),
-        }
-        results = []
-        try:
-            for code, (yf_symbol, name) in hk_indices.items():
-                try:
-                    item = self._fetch_yf_ticker_data(yf, yf_symbol, name, code)
-                    if item:
-                        results.append(item)
-                        logger.debug(f"[Yfinance] 获取港股指数 {name} 成功")
-                except Exception as e:
-                    logger.warning(f"[Yfinance] 获取港股指数 {name} 失败: {e}")
-
-            if results:
-                logger.info(f"[Yfinance] 成功获取 {len(results)} 个港股指数行情")
-                return results
-
-        except Exception as e:
-            logger.error(f"[Yfinance] 获取港股指数行情失败: {e}")
-
-        return None
 
     def _get_tw_main_indices(self, yf) -> Optional[List[Dict[str, Any]]]:
         """獲取台股主要指數行情（加權、櫃買、台灣 50）。"""
@@ -940,7 +835,7 @@ if __name__ == "__main__":
     fetcher = YfinanceFetcher()
 
     try:
-        df = fetcher.get_daily_data('600519')  # 茅台
+        df = fetcher.get_daily_data('2330')  # 台積電
         print(f"获取成功，共 {len(df)} 条数据")
         print(df.tail())
     except Exception as e:
