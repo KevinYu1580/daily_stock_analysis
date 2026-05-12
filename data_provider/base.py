@@ -488,13 +488,8 @@ class DataFetcherManager:
     """
 
     _DAILY_MARKET_FETCHER_SUPPORT = {
-        "EfinanceFetcher": {"cn"},
-        "AkshareFetcher": {"cn", "hk"},
-        "TushareFetcher": {"cn", "hk"},
-        "PytdxFetcher": {"cn"},
-        "BaostockFetcher": {"cn"},
-        "YfinanceFetcher": {"cn", "hk", "us"},
-        "LongbridgeFetcher": {"hk", "us"},
+        "YfinanceFetcher": {"us", "tw"},
+        "FinmindFetcher": {"tw"},
     }
     
     def __init__(self, fetchers: Optional[List[BaseFetcher]] = None):
@@ -601,50 +596,8 @@ class DataFetcherManager:
         return name
 
     def _get_tickflow_fetcher(self):
-        """Lazily create a TickFlow fetcher for market-review-only calls."""
-        from src.config import get_config
-
-        config = get_config()
-        api_key = (getattr(config, "tickflow_api_key", None) or "").strip()
-
-        if not hasattr(self, "_tickflow_lock") or self._tickflow_lock is None:
-            self._tickflow_lock = RLock()
-
-        with self._tickflow_lock:
-            current_fetcher = getattr(self, "_tickflow_fetcher", None)
-            current_key = getattr(self, "_tickflow_api_key", None)
-
-            if not api_key:
-                if current_fetcher is not None and hasattr(current_fetcher, "close"):
-                    try:
-                        current_fetcher.close()
-                    except Exception as exc:
-                        logger.debug("[TickFlowFetcher] 关闭旧实例失败: %s", exc)
-                self._tickflow_fetcher = None
-                self._tickflow_api_key = None
-                return None
-
-            if current_fetcher is not None and current_key == api_key:
-                return current_fetcher
-
-            if current_fetcher is not None and hasattr(current_fetcher, "close"):
-                try:
-                    current_fetcher.close()
-                except Exception as exc:
-                    logger.debug("[TickFlowFetcher] 切换实例时关闭失败: %s", exc)
-
-            try:
-                from .tickflow_fetcher import TickFlowFetcher
-
-                fetcher = TickFlowFetcher(api_key=api_key)
-                self._tickflow_fetcher = fetcher
-                self._tickflow_api_key = api_key
-                return fetcher
-            except Exception as exc:
-                logger.warning("[TickFlowFetcher] 初始化失败: %s", exc)
-                self._tickflow_fetcher = None
-                self._tickflow_api_key = None
-                return None
+        """TickFlow 数据源已移除（仅保留台股 / 美股）；保留接口以兼容旧调用。"""
+        return None
 
     def close(self) -> None:
         """Best-effort release of manager-owned resources."""
@@ -884,52 +837,22 @@ class DataFetcherManager:
     
     def _init_default_fetchers(self) -> None:
         """
-        初始化默认数据源列表
+        初始化默认数据源列表（仅台股 / 美股）
 
-        优先级动态调整逻辑：
-        - 如果配置了 TUSHARE_TOKEN：Tushare 优先级提升为 0（最高）
-        - 否则按默认优先级：
-          0. EfinanceFetcher (Priority 0) - 最高优先级
-          1. AkshareFetcher (Priority 1)
-          2. PytdxFetcher (Priority 2) - 通达信
-          2. TushareFetcher (Priority 2)
-          3. BaostockFetcher (Priority 3)
-          4. YfinanceFetcher (Priority 4)
-          5. LongbridgeFetcher (Priority 5) - 长桥（美股/港股兜底）
+          - YfinanceFetcher: 美股 + 台股兜底
+          - FinmindFetcher : 台股（FINMIND_TOKEN 设定时优先级提升为 0）
         """
-        from .efinance_fetcher import EfinanceFetcher
-        from .akshare_fetcher import AkshareFetcher
-        from .tushare_fetcher import TushareFetcher
-        from .pytdx_fetcher import PytdxFetcher
-        from .baostock_fetcher import BaostockFetcher
         from .yfinance_fetcher import YfinanceFetcher
-        from .longbridge_fetcher import LongbridgeFetcher
         from .finmind_fetcher import FinmindFetcher
-        # 创建所有数据源实例（优先级在各 Fetcher 的 __init__ 中确定）
-        efinance = EfinanceFetcher()
-        akshare = AkshareFetcher()
-        tushare = TushareFetcher()  # 会根据 Token 配置自动调整优先级
-        pytdx = PytdxFetcher()      # 通达信数据源（可配 PYTDX_HOST/PYTDX_PORT）
-        baostock = BaostockFetcher()
+        # 仅保留台股 / 美股数据源
+        #   - YfinanceFetcher: 美股 + 台股（兜底）
+        #   - FinmindFetcher : 台股（FINMIND_TOKEN 设定时优先级提升）
         yfinance = YfinanceFetcher()
-        longbridge = LongbridgeFetcher()  # 长桥（美股/港股兜底，懒加载）
-        finmind = FinmindFetcher()  # 台股（FINMIND_TOKEN 設定時優先級提升）
+        finmind = FinmindFetcher()
 
-        # 初始化数据源列表
         self._ensure_concurrency_guards()
         with self._fetchers_lock:
-            self._fetchers = [
-                efinance,
-                akshare,
-                tushare,
-                pytdx,
-                baostock,
-                yfinance,
-                longbridge,
-                finmind,
-            ]
-
-            # 按优先级排序（Tushare 如果配置了 Token 且初始化成功，优先级为 0）
+            self._fetchers = [yfinance, finmind]
             self._fetchers.sort(key=lambda f: f.priority)
 
         # 构建优先级说明
@@ -975,8 +898,19 @@ class DataFetcherManager:
         from .us_index_mapping import is_us_index_code, is_us_stock_code
         from .tw_market import is_tw_stock_code as _is_tw_stock_code, is_tw_index_code as _is_tw_index_code
 
-        # Normalize code (strip SH/SZ prefix etc.)
+        # Normalize code
         stock_code = normalize_stock_code(stock_code)
+
+        # 仅支持台股 / 美股；其他市场（A 股、港股等）已不再支持
+        if not (
+            is_us_index_code(stock_code)
+            or is_us_stock_code(stock_code)
+            or _is_tw_index_code(stock_code)
+            or _is_tw_stock_code(stock_code)
+        ):
+            raise DataFetchError(
+                f"不支持的市场代码: {stock_code}（本系统仅支持台股与美股）"
+            )
 
         fetchers = self._get_fetchers_snapshot()
         errors = []
@@ -1231,7 +1165,6 @@ class DataFetcherManager:
         # Normalize code (strip SH/SZ prefix etc.)
         stock_code = normalize_stock_code(stock_code)
 
-        from .akshare_fetcher import _is_us_code
         from .us_index_mapping import is_us_index_code
         from .tw_market import is_tw_stock_code as _is_tw_stock_code, is_tw_index_code as _is_tw_index_code
         from src.config import get_config
@@ -1250,7 +1183,7 @@ class DataFetcherManager:
         #   美股指数:   始终 YFinance 首选（Longbridge 不提供指数行情）
         # ----------------------------------------------------------
         is_us_index = is_us_index_code(stock_code)
-        is_us = is_us_index or _is_us_code(stock_code)
+        is_us = is_us_index or _is_us_market(stock_code)
         is_hk = (not is_us) and _is_hk_market(stock_code)
         is_tw = (not is_us) and (_is_tw_stock_code(stock_code) or _is_tw_index_code(stock_code))
 
@@ -1583,9 +1516,8 @@ class DataFetcherManager:
                 return name
 
         # 3. 依次尝试各个数据源
-        from .akshare_fetcher import _is_us_code
         from .tw_market import is_tw_stock_code as _tw_stock, is_tw_index_code as _tw_index
-        is_us = _is_us_code(stock_code)
+        is_us = _is_us_market(stock_code)
         is_tw = (not is_us) and (_tw_stock(stock_code) or _tw_index(stock_code))
         _US_CAPABLE_FETCHERS = {"YfinanceFetcher", "LongbridgeFetcher"}
         _TW_CAPABLE_FETCHERS = {"YfinanceFetcher", "FinmindFetcher"}
