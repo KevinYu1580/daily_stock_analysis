@@ -1,6 +1,31 @@
 # 重構計畫:只保留台股 + 美股(移除 A 股 / 港股)
 
-> 狀態:**待 user 簽收 + 待決策**。本文件落地後依「階段」逐步執行,每階段跑驗證閘,不一次砍。
+> 狀態:**進行中**(branch `refactor/tw-us-only`)。決策已拍板(見第 2 節)。
+
+## 0. 進度(逐 commit)
+
+| commit | 內容 | 狀態 |
+| --- | --- | --- |
+| `docs: plan` | 本文件 | ✅ |
+| `refactor(market)` | Stage 1+2:market_context / market_strategy(+TW_BLUEPRINT)/ market_profile(+TW_PROFILE)/ market_analyzer / market_review / trading_calendar / config / config_registry(MARKET_REVIEW_REGION→tw/us/both,預設 tw)/ stock_code_utils / search_service(台股→zh-hant 新聞) | ✅ |
+| `refactor(data-provider)` | Stage 3:刪 7 個 CN/HK fetcher、DataFetcherManager 只註冊 yfinance+finmind、get_daily_data 拒非 TW/US 代碼、gut tickflow、`data_provider/__init__` 收斂 | ✅(留 debt,見下) |
+| `test: drop ...` | Stage 7 部分:刪 15 個只測已移除資料源/HK/BSE 的測試檔(pytest 可正常 collect) | ✅(部分) |
+| 前端 | apps/dsa-web:Market 型別→TW/US/INDEX/ETF、portfolio market→us/tw、PortfolioPage 改台股/TWD、settingsHelp、SuggestionsList badge、相關前端測試;桌面端純 wrapper 無 CN/HK | ✅(已併入分支) |
+| 文件/workflows | README/docs/.env.example/requirements.txt/daily_analysis.yml/CHANGELOG | 🚧 subagent 進行中 |
+
+## 剩餘待辦(follow-up,本分支或後續 PR)
+
+- **base.py dead-code 清理**:`get_daily_data`/`get_realtime_quote` 內 CN/HK 路由分支、`_filter_daily_fetchers_for_market` hk/cn 邏輯、`is_bse_code`/`is_st_stock`/`is_kc_cy_stock`/`_is_hk_market`/`ETF_PREFIXES` 純函式(`yfinance_fetcher.py` 目前還 import `is_bse_code`,要先清 yfinance 的 CN 分支)。
+- **`realtime_types.py`**:`RealtimeSource` enum 仍列 EFINANCE/AKSHARE_*/TUSHARE/TENCENT/SINA/STOOQ/LONGBRIDGE — STOOQ 可能還是 yfinance 的美股兜底,需確認後刪其餘。
+- **`fundamental_adapter.py`**:`AkshareFundamentalAdapter` 現已退化為 `not_supported`(akshare 移除後 `import akshare` 失敗→優雅降級),應改接 FinMind / yfinance 基本面或正式移除。
+- **`src/config.py` / `config_registry.py` dead keys**:`TUSHARE_TOKEN`、`TICKFLOW_API_KEY`、`PYTDX_HOST/PORT/SERVERS`、`REALTIME_SOURCE_PRIORITY` 的 tushare auto-inject、`tushare_token` 驗證等仍在(無作用,但應清理)。
+- **market-layer 測試重寫**:`test_market_strategy` / `test_market_review*` / `test_market_analyzer_generate_text`(import `CN_PROFILE`)/ `test_trading_calendar` 仍斷言舊 CN/HK 行為;`test_fundamental_context` / `test_realtime_quote_fallback_logging` / `test_pipeline_related_boards` 等 mock 測試帶 CN 味道 — pytest collect OK,但這些會 fail,要更新或刪。補 `TW_BLUEPRINT`/`TW_PROFILE` 測試。
+- **`src/core/pipeline.py` / `bot/` / `src/agent/`**:`market == 'cn'/'hk'` 的死分支(現 `get_market_for_stock` 回 None,不會踩到,但應清);`pipeline` 對不支援市場標的的「軟拒絕/略過」可更明確(目前靠 `get_daily_data` 丟 `DataFetchError`,被 per-stock 錯誤處理吞掉)。
+- **`scripts/`**:`fetch_tushare_stock_list.py` 刪;`check_env.py`、`generate_index_from_csv.py`、`generate_stock_index.py` 的 akshare/tushare 依賴清掉。
+- **`apps/dsa-web/public/stocks.index.json`(+ `static/` 鏡像)**:仍含 5191 CN / 2723 HK / 300 BSE — 要重跑 `generate_stock_index.py`,而 `src/data/stock_mapping.py` `STOCK_NAME_MAP` 也以 CN 為主,需一併瘦身為台股/美股清單。
+- **最終驗證**:本地未跑 `./scripts/ci_gate.sh` / `pytest`(此環境未裝 pandas/dotenv 等依賴);只做了 `py_compile`。需在裝好依賴的環境跑全套並補 CI 證據。
+
+> 狀態原註:本文件落地後依「階段」逐步執行,每階段跑驗證閘,不一次砍。
 
 ## 1. 目標
 
