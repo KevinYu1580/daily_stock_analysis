@@ -57,7 +57,7 @@ class TestReportRenderer(unittest.TestCase):
         r = _make_result()
         out = render("markdown", [r], summary_only=True)
         self.assertIsNotNone(out)
-        self.assertIn("决策仪表盘", out)
+        self.assertIn("決策儀表盤", out)
         self.assertIn("贵州茅台", out)
         self.assertIn("持有", out)
 
@@ -66,8 +66,8 @@ class TestReportRenderer(unittest.TestCase):
         r = _make_result()
         out = render("markdown", [r], summary_only=False)
         self.assertIsNotNone(out)
-        self.assertIn("核心结论", out)
-        self.assertIn("作战计划", out)
+        self.assertIn("核心結論", out)
+        self.assertIn("作戰計劃", out)
 
     def test_render_wechat(self) -> None:
         """Wechat platform renders."""
@@ -81,7 +81,7 @@ class TestReportRenderer(unittest.TestCase):
         r = _make_result()
         out = render("brief", [r])
         self.assertIsNotNone(out)
-        self.assertIn("决策简报", out)
+        self.assertIn("決策簡報", out)
         self.assertIn("贵州茅台", out)
 
     def test_render_markdown_in_english(self) -> None:

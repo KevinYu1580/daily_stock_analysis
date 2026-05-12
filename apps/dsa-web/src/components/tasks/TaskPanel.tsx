@@ -4,14 +4,14 @@ import { DashboardPanelHeader } from '../dashboard';
 import type { TaskInfo } from '../../types/analysis';
 
 /**
- * 任务项组件属性
+ * 任務項元件屬性
  */
 interface TaskItemProps {
   task: TaskInfo;
 }
 
 /**
- * 单个任务项
+ * 單個任務項
  */
 const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
   const isPending = task.status === 'pending';
@@ -23,16 +23,16 @@ const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
 
   return (
     <div className="home-subpanel flex items-center gap-3 px-3 py-2.5">
-      {/* 状态图标 */}
+      {/* 狀態圖示 */}
       <div className="shrink-0">
         {isProcessing ? (
-          <StatusDot tone="info" pulse className="h-2.5 w-2.5" aria-label="任务进行中" />
+          <StatusDot tone="info" pulse className="h-2.5 w-2.5" aria-label="任務進行中" />
         ) : isPending ? (
-          <StatusDot tone="neutral" className="h-2.5 w-2.5" aria-label="任务等待中" />
+          <StatusDot tone="neutral" className="h-2.5 w-2.5" aria-label="任務等待中" />
         ) : null}
       </div>
 
-      {/* 任务信息 */}
+      {/* 任務資訊 */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-foreground truncate">
@@ -60,12 +60,12 @@ const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
         </div>
       </div>
 
-      {/* 状态标签 */}
+      {/* 狀態標籤 */}
       <div className="flex-shrink-0">
         <Badge
           variant={statusVariant}
           className="min-w-[4.75rem] justify-center gap-1.5 shadow-none"
-          aria-label={`任务状态：${statusLabel}`}
+          aria-label={`任務狀態：${statusLabel}`}
         >
           <StatusDot tone={statusTone} pulse={isProcessing} className="h-1.5 w-1.5" />
           {statusLabel}
@@ -76,35 +76,35 @@ const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
 };
 
 /**
- * 任务面板属性
+ * 任務面板屬性
  */
 interface TaskPanelProps {
-  /** 任务列表 */
+  /** 任務列表 */
   tasks: TaskInfo[];
-  /** 是否显示 */
+  /** 是否顯示 */
   visible?: boolean;
-  /** 标题 */
+  /** 標題 */
   title?: string;
-  /** 自定义类名 */
+  /** 自定義類名 */
   className?: string;
 }
 
 /**
- * 任务面板组件
- * 显示进行中的分析任务列表
+ * 任務面板元件
+ * 顯示進行中的分析任務列表
  */
 export const TaskPanel: React.FC<TaskPanelProps> = ({
   tasks,
   visible = true,
-  title = '分析任务',
+  title = '分析任務',
   className = '',
 }) => {
-  // 筛选活跃任务（pending 和 processing）
+  // 篩選活躍任務（pending 和 processing）
   const activeTasks = tasks.filter(
     (t) => t.status === 'pending' || t.status === 'processing'
   );
 
-  // 无任务或不可见时不渲染
+  // 無任務或不可見時不渲染
   if (!visible || activeTasks.length === 0) {
     return null;
   }
@@ -138,13 +138,13 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({
             <div className="flex items-center gap-2 text-xs text-muted-text">
               {processingCount > 0 && (
                 <span className="flex items-center gap-1">
-                  <StatusDot tone="info" pulse className="h-1.5 w-1.5" aria-label="进行中任务" />
-                  {processingCount} 进行中
+                  <StatusDot tone="info" pulse className="h-1.5 w-1.5" aria-label="進行中任務" />
+                  {processingCount} 進行中
                 </span>
               )}
               {pendingCount > 0 ? (
                 <span className="flex items-center gap-1">
-                  <StatusDot tone="neutral" className="h-1.5 w-1.5" aria-label="等待中任务" />
+                  <StatusDot tone="neutral" className="h-1.5 w-1.5" aria-label="等待中任務" />
                   {pendingCount} 等待中
                 </span>
               ) : null}

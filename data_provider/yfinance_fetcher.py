@@ -33,6 +33,13 @@ from tenacity import (
 
 from .base import BaseFetcher, DataFetchError, STANDARD_COLUMNS, is_bse_code
 from .realtime_types import UnifiedRealtimeQuote, RealtimeSource
+from .tw_market import (
+    get_tw_index_yf_symbol,
+    is_tw_index_code,
+    is_tw_stock_code,
+    normalize_tw_code,
+    to_tw_yf_code,
+)
 from .us_index_mapping import get_us_index_yf_symbol, is_us_stock_code
 
 # 可选导入本地股票映射补丁，若缺失则使用空字典兜底
@@ -114,6 +121,18 @@ class YfinanceFetcher(BaseFetcher):
         if is_us_stock_code(code):
             logger.debug(f"识别为美股代码: {code}")
             return code
+
+        # 台股指数：映射到 yfinance 符号
+        tw_yf_symbol, _ = get_tw_index_yf_symbol(code)
+        if tw_yf_symbol:
+            logger.debug(f"識別為台股指數: {code} -> {tw_yf_symbol}")
+            return tw_yf_symbol
+
+        # 台股：純 4 碼數字 / tw 前綴 / .TW(.TWO) 後綴
+        if is_tw_stock_code(code):
+            yf_code = to_tw_yf_code(code)
+            logger.debug(f"轉換台股代碼: {stock_code} -> {yf_code}")
+            return yf_code
 
         # 港股：hk前缀 -> .HK后缀
         if code.startswith('HK'):
@@ -316,6 +335,8 @@ class YfinanceFetcher(BaseFetcher):
             return self._get_us_main_indices(yf)
         if region == "hk":
             return self._get_hk_main_indices(yf)
+        if region == "tw":
+            return self._get_tw_main_indices(yf)
 
         # A 股指数：akshare 代码 -> (yfinance 代码, 显示名称)
         yf_mapping = {
@@ -406,6 +427,53 @@ class YfinanceFetcher(BaseFetcher):
 
         return None
 
+    def _get_tw_main_indices(self, yf) -> Optional[List[Dict[str, Any]]]:
+        """獲取台股主要指數行情（加權、櫃買、台灣 50）。"""
+        from .tw_market import TW_INDEX_MAP
+
+        results = []
+        try:
+            for code, (yf_symbol, name) in TW_INDEX_MAP.items():
+                try:
+                    item = self._fetch_yf_ticker_data(yf, yf_symbol, name, code)
+                    if item:
+                        results.append(item)
+                        logger.debug(f"[Yfinance] 取得台股指數 {name} 成功")
+                except Exception as e:
+                    logger.warning(f"[Yfinance] 取得台股指數 {name} 失敗: {e}")
+
+            if results:
+                logger.info(f"[Yfinance] 成功取得 {len(results)} 個台股指數行情")
+                return results
+        except Exception as e:
+            logger.error(f"[Yfinance] 取得台股指數行情失敗: {e}")
+
+        return None
+
+    def get_stock_name(self, stock_code: str) -> Optional[str]:
+        """從 yfinance Ticker.info 取得股票名稱（支援台股、美股）。"""
+        import yfinance as yf
+
+        code = (stock_code or "").strip().upper()
+
+        # 台股：轉 .TW 後綴
+        if is_tw_stock_code(code):
+            yf_code = to_tw_yf_code(code)
+        elif is_us_stock_code(code):
+            yf_code = code
+        else:
+            return None
+
+        try:
+            ticker = yf.Ticker(yf_code)
+            info = ticker.info or {}
+            name = info.get('shortName') or info.get('longName') or ''
+            if is_meaningful_stock_name(name, code):
+                return str(name).strip()
+        except Exception as e:
+            logger.debug(f"[Yfinance] 取得 {code} 名稱失敗: {e}")
+        return None
+
     def _is_us_stock(self, stock_code: str) -> bool:
         """
         判断代码是否为美股股票（排除美股指数）。
@@ -413,6 +481,100 @@ class YfinanceFetcher(BaseFetcher):
         委托给 us_index_mapping 模块的 is_us_stock_code()。
         """
         return is_us_stock_code(stock_code)
+
+    def _get_tw_realtime_quote(self, stock_code: str) -> Optional[UnifiedRealtimeQuote]:
+        """獲取台股即時行情（透過 yfinance）。
+
+        台股盤後資料在 yfinance 通常延遲 15~20 分鐘，盤中即時建議走證交所 OpenAPI。
+        """
+        import yfinance as yf
+
+        # 台股指數
+        tw_yf_symbol, tw_name = get_tw_index_yf_symbol(stock_code)
+        if tw_yf_symbol:
+            yf_code = tw_yf_symbol
+            display_code = str(stock_code).strip().upper()
+            display_name = tw_name or display_code
+        else:
+            yf_code = to_tw_yf_code(stock_code)
+            display_code = normalize_tw_code(stock_code)
+            display_name = STOCK_NAME_MAP.get(display_code, '')
+
+        try:
+            logger.debug(f"[Yfinance] 取得台股 {display_code} 即時行情 ({yf_code})")
+            ticker = yf.Ticker(yf_code)
+
+            try:
+                info = ticker.fast_info
+                if info is None:
+                    raise ValueError("fast_info is None")
+                price = getattr(info, 'lastPrice', None) or getattr(info, 'last_price', None)
+                prev_close = getattr(info, 'previousClose', None) or getattr(info, 'previous_close', None)
+                open_price = getattr(info, 'open', None)
+                high = getattr(info, 'dayHigh', None) or getattr(info, 'day_high', None)
+                low = getattr(info, 'dayLow', None) or getattr(info, 'day_low', None)
+                volume = getattr(info, 'lastVolume', None) or getattr(info, 'last_volume', None)
+                market_cap = getattr(info, 'marketCap', None) or getattr(info, 'market_cap', None)
+            except Exception:
+                logger.debug("[Yfinance] fast_info 失敗，改用 history")
+                hist = ticker.history(period='2d')
+                if hist.empty:
+                    logger.warning(f"[Yfinance] 無法取得台股 {display_code} 資料")
+                    return None
+                today = hist.iloc[-1]
+                prev = hist.iloc[-2] if len(hist) > 1 else today
+                price = float(today['Close'])
+                prev_close = float(prev['Close'])
+                open_price = float(today['Open'])
+                high = float(today['High'])
+                low = float(today['Low'])
+                volume = int(today['Volume'])
+                market_cap = None
+
+            change_amount = None
+            change_pct = None
+            if price is not None and prev_close is not None and prev_close > 0:
+                change_amount = price - prev_close
+                change_pct = (change_amount / prev_close) * 100
+
+            amplitude = None
+            if high is not None and low is not None and prev_close is not None and prev_close > 0:
+                amplitude = ((high - low) / prev_close) * 100
+
+            if not display_name:
+                try:
+                    info_name = ticker.info.get('shortName', '') or ticker.info.get('longName', '') or ''
+                    if is_meaningful_stock_name(info_name, display_code):
+                        display_name = info_name
+                except Exception:
+                    pass
+
+            quote = UnifiedRealtimeQuote(
+                code=display_code,
+                name=display_name,
+                source=RealtimeSource.FALLBACK,
+                price=price,
+                change_pct=round(change_pct, 2) if change_pct is not None else None,
+                change_amount=round(change_amount, 4) if change_amount is not None else None,
+                volume=volume,
+                amount=None,
+                volume_ratio=None,
+                turnover_rate=None,
+                amplitude=round(amplitude, 2) if amplitude is not None else None,
+                open_price=open_price,
+                high=high,
+                low=low,
+                pre_close=prev_close,
+                pe_ratio=None,
+                pb_ratio=None,
+                total_mv=market_cap,
+                circ_mv=None,
+            )
+            logger.info(f"[Yfinance] 取得台股 {display_code} 即時行情成功: 價格={price}")
+            return quote
+        except Exception as e:
+            logger.warning(f"[Yfinance] 取得台股 {display_code} 即時行情失敗: {e}")
+            return None
 
     def _get_us_stock_quote_from_stooq(self, stock_code: str) -> Optional[UnifiedRealtimeQuote]:
         """
@@ -673,6 +835,10 @@ class YfinanceFetcher(BaseFetcher):
                 yf_symbol=yf_symbol,
                 index_name=index_name,
             )
+
+        # 台股（指數或個股）走台股專用實時行情
+        if is_tw_index_code(stock_code) or is_tw_stock_code(stock_code):
+            return self._get_tw_realtime_quote(stock_code)
 
         # 仅处理美股股票
         if not self._is_us_stock(stock_code):

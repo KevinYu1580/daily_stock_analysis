@@ -45,7 +45,7 @@ const mockStoreState = {
   sessions: [
     {
       session_id: 'session-1',
-      title: '请简要分析 600519',
+      title: '請簡要分析 600519',
       message_count: 2,
       created_at: '2026-03-15T09:00:00Z',
       last_active: '2026-03-15T09:05:00Z',
@@ -133,7 +133,7 @@ beforeEach(() => {
   mockStoreState.sessions = [
     {
       session_id: 'session-1',
-      title: '请简要分析 600519',
+      title: '請簡要分析 600519',
       message_count: 2,
       created_at: '2026-03-15T09:00:00Z',
       last_active: '2026-03-15T09:05:00Z',
@@ -141,7 +141,7 @@ beforeEach(() => {
   ];
   mockGetSkills.mockResolvedValue({
     skills: [
-      { id: 'bull_trend', name: '趋势分析', description: '测试技能' },
+      { id: 'bull_trend', name: '趨勢分析', description: '測試技能' },
     ],
     default_skill_id: 'bull_trend',
   });
@@ -174,7 +174,7 @@ describe('ChatPage', () => {
     );
 
     const sessionCard = await screen.findByRole('button', {
-      name: /切换到对话 请简要分析 600519/,
+      name: /切換到對話 請簡要分析 600519/,
     });
 
     fireEvent.click(sessionCard);
@@ -190,13 +190,13 @@ describe('ChatPage', () => {
     );
 
     const deleteButton = await screen.findByRole('button', {
-      name: /删除对话 请简要分析 600519/,
+      name: /刪除對話 請簡要分析 600519/,
     });
 
     fireEvent.click(deleteButton);
 
     expect(mockSwitchSession).not.toHaveBeenCalled();
-    expect(await screen.findByText('删除后，该对话将不可恢复，确认删除吗？')).toBeInTheDocument();
+    expect(await screen.findByText('刪除後，該對話將不可恢復，確認刪除嗎？')).toBeInTheDocument();
   });
 
   it('hides header actions when there are no messages', async () => {
@@ -206,16 +206,16 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole('heading', { name: '问股' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '导出会话' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '发送到已配置的通知机器人/邮箱' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '历史对话' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '問股' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '匯出會話' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '傳送到已配置的通知機器人/郵箱' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '歷史對話' })).toBeInTheDocument();
   });
 
   it('exports the current session from the header action', async () => {
     mockStoreState.messages = [
-      { id: 'user-1', role: 'user', content: '请分析 600519' },
-      { id: 'assistant-1', role: 'assistant', content: '趋势偏强', skillName: '趋势分析' },
+      { id: 'user-1', role: 'user', content: '請分析 600519' },
+      { id: 'assistant-1', role: 'assistant', content: '趨勢偏強', skillName: '趨勢分析' },
     ];
 
     render(
@@ -224,7 +224,7 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: '导出会话为 Markdown 文件' }));
+    fireEvent.click(await screen.findByRole('button', { name: '匯出會話為 Markdown 檔案' }));
 
     expect(mockDownloadSession).toHaveBeenCalledWith(mockStoreState.messages);
     expect(mockFormatSessionAsMarkdown).not.toHaveBeenCalled();
@@ -232,7 +232,7 @@ describe('ChatPage', () => {
 
   it('renders assistant skill labels with shared badge semantics', async () => {
     mockStoreState.messages = [
-      { id: 'assistant-1', role: 'assistant', content: '趋势偏强', skillName: '趋势分析' },
+      { id: 'assistant-1', role: 'assistant', content: '趨勢偏強', skillName: '趨勢分析' },
     ];
 
     render(
@@ -241,9 +241,9 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    const skillBadge = await screen.findByLabelText('技能 趋势分析');
+    const skillBadge = await screen.findByLabelText('技能 趨勢分析');
     expect(skillBadge).toBeInTheDocument();
-    expect(skillBadge).toHaveTextContent('趋势分析');
+    expect(skillBadge).toHaveTextContent('趨勢分析');
   });
 
   it('renders assistant multi-skill labels with shared badge semantics', async () => {
@@ -251,9 +251,9 @@ describe('ChatPage', () => {
       {
         id: 'assistant-1',
         role: 'assistant',
-        content: '趋势偏强',
+        content: '趨勢偏強',
         skills: ['bull_trend', 'ma_golden_cross'],
-        skillNames: ['趋势分析', '均线金叉'],
+        skillNames: ['趨勢分析', '均線金叉'],
       },
     ];
 
@@ -263,9 +263,9 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    const skillBadge = await screen.findByLabelText('技能 趋势分析、均线金叉');
+    const skillBadge = await screen.findByLabelText('技能 趨勢分析、均線金叉');
     expect(skillBadge).toBeInTheDocument();
-    expect(skillBadge).toHaveTextContent('趋势分析、均线金叉');
+    expect(skillBadge).toHaveTextContent('趨勢分析、均線金叉');
   });
 
   it('selects the default skill after loading skills', async () => {
@@ -275,15 +275,15 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole('checkbox', { name: '趋势分析' })).toBeChecked();
+    expect(await screen.findByRole('checkbox', { name: '趨勢分析' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: '通用分析' })).not.toBeChecked();
   });
 
   it('sends multiple selected skills in order', async () => {
     mockGetSkills.mockResolvedValue({
       skills: [
-        { id: 'bull_trend', name: '趋势分析', description: '默认趋势' },
-        { id: 'ma_golden_cross', name: '均线金叉', description: '均线交叉' },
+        { id: 'bull_trend', name: '趨勢分析', description: '預設趨勢' },
+        { id: 'ma_golden_cross', name: '均線金叉', description: '均線交叉' },
       ],
       default_skill_id: 'bull_trend',
     });
@@ -294,11 +294,11 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(await screen.findByRole('checkbox', { name: '均线金叉' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: '均線金叉' }));
     fireEvent.change(screen.getByPlaceholderText(/分析 600519/), {
       target: { value: '分析 600519' },
     });
-    fireEvent.click(screen.getByRole('button', { name: '发送' }));
+    fireEvent.click(screen.getByRole('button', { name: '傳送' }));
 
     await waitFor(() => {
       expect(mockStartStream).toHaveBeenCalledWith(
@@ -307,8 +307,8 @@ describe('ChatPage', () => {
           skills: ['bull_trend', 'ma_golden_cross'],
         }),
         expect.objectContaining({
-          skillNames: ['趋势分析', '均线金叉'],
-          skillName: '趋势分析、均线金叉',
+          skillNames: ['趨勢分析', '均線金叉'],
+          skillName: '趨勢分析、均線金叉',
         }),
       );
     });
@@ -321,13 +321,13 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(await screen.findByRole('checkbox', { name: '趋势分析' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: '趨勢分析' }));
     expect(screen.getByRole('checkbox', { name: '通用分析' })).toBeChecked();
 
     fireEvent.change(screen.getByPlaceholderText(/分析 600519/), {
       target: { value: '分析 AAPL' },
     });
-    fireEvent.click(screen.getByRole('button', { name: '发送' }));
+    fireEvent.click(screen.getByRole('button', { name: '傳送' }));
 
     await waitFor(() => {
       expect(mockStartStream).toHaveBeenCalled();
@@ -344,10 +344,10 @@ describe('ChatPage', () => {
   it('caps concrete skill selection at three and re-enables choices after unselecting', async () => {
     mockGetSkills.mockResolvedValue({
       skills: [
-        { id: 'bull_trend', name: '趋势分析', description: '默认趋势' },
-        { id: 'ma_golden_cross', name: '均线金叉', description: '均线交叉' },
-        { id: 'chan_theory', name: '缠论', description: '结构分析' },
-        { id: 'wave_theory', name: '波浪理论', description: '波浪分析' },
+        { id: 'bull_trend', name: '趨勢分析', description: '預設趨勢' },
+        { id: 'ma_golden_cross', name: '均線金叉', description: '均線交叉' },
+        { id: 'chan_theory', name: '纏論', description: '結構分析' },
+        { id: 'wave_theory', name: '波浪理論', description: '波浪分析' },
       ],
       default_skill_id: 'bull_trend',
     });
@@ -358,22 +358,22 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(await screen.findByRole('checkbox', { name: '均线金叉' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: '缠论' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: '均線金叉' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: '纏論' }));
 
-    const wave = screen.getByRole('checkbox', { name: '波浪理论' });
+    const wave = screen.getByRole('checkbox', { name: '波浪理論' });
     expect(wave).toBeDisabled();
 
-    fireEvent.click(screen.getByRole('checkbox', { name: '均线金叉' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: '均線金叉' }));
     expect(wave).not.toBeDisabled();
   });
 
   it('quick questions override the current multi-skill selection', async () => {
     mockGetSkills.mockResolvedValue({
       skills: [
-        { id: 'bull_trend', name: '趋势分析', description: '默认趋势' },
-        { id: 'ma_golden_cross', name: '均线金叉', description: '均线交叉' },
-        { id: 'chan_theory', name: '缠论', description: '结构分析' },
+        { id: 'bull_trend', name: '趨勢分析', description: '預設趨勢' },
+        { id: 'ma_golden_cross', name: '均線金叉', description: '均線交叉' },
+        { id: 'chan_theory', name: '纏論', description: '結構分析' },
       ],
       default_skill_id: 'bull_trend',
     });
@@ -384,18 +384,18 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(await screen.findByRole('checkbox', { name: '均线金叉' }));
-    fireEvent.click(screen.getByRole('button', { name: '用缠论分析茅台' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: '均線金叉' }));
+    fireEvent.click(screen.getByRole('button', { name: '用纏論分析茅臺' }));
 
     await waitFor(() => {
       expect(mockStartStream).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: '用缠论分析茅台',
+          message: '用纏論分析茅臺',
           skills: ['chan_theory'],
         }),
         expect.objectContaining({
-          skillNames: ['缠论'],
-          skillName: '缠论',
+          skillNames: ['纏論'],
+          skillName: '纏論',
         }),
       );
     });
@@ -403,7 +403,7 @@ describe('ChatPage', () => {
 
   it('keeps assistant message actions directly activatable in the DOM', async () => {
     mockStoreState.messages = [
-      { id: 'assistant-1', role: 'assistant', content: '趋势偏强', skillName: '趋势分析' },
+      { id: 'assistant-1', role: 'assistant', content: '趨勢偏強', skillName: '趨勢分析' },
     ];
 
     render(
@@ -412,7 +412,7 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    const exportButton = await screen.findByRole('button', { name: '导出此条消息为 Markdown' });
+    const exportButton = await screen.findByRole('button', { name: '匯出此條訊息為 Markdown' });
     const actionGroup = exportButton.parentElement;
 
     expect(actionGroup).toHaveClass('chat-message-actions');
@@ -421,8 +421,8 @@ describe('ChatPage', () => {
 
   it('sends exported markdown to notification channel and shows success feedback', async () => {
     mockStoreState.messages = [
-      { id: 'user-1', role: 'user', content: '请分析 600519' },
-      { id: 'assistant-1', role: 'assistant', content: '趋势偏强', skillName: '趋势分析' },
+      { id: 'user-1', role: 'user', content: '請分析 600519' },
+      { id: 'assistant-1', role: 'assistant', content: '趨勢偏強', skillName: '趨勢分析' },
     ];
     mockFormatSessionAsMarkdown.mockReturnValue('# exported markdown');
 
@@ -432,24 +432,24 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: '发送到已配置的通知机器人/邮箱' }));
+    fireEvent.click(await screen.findByRole('button', { name: '傳送到已配置的通知機器人/郵箱' }));
 
     await waitFor(() => {
       expect(mockFormatSessionAsMarkdown).toHaveBeenCalledWith(mockStoreState.messages);
       expect(mockSendChat).toHaveBeenCalledWith('# exported markdown');
     });
 
-    expect(await screen.findByText('已发送到通知渠道')).toBeInTheDocument();
+    expect(await screen.findByText('已傳送到通知渠道')).toBeInTheDocument();
   });
 
   it('shows parsed error feedback when notification delivery fails', async () => {
     mockStoreState.messages = [
-      { id: 'user-1', role: 'user', content: '请分析 AAPL' },
-      { id: 'assistant-1', role: 'assistant', content: '短线震荡', skillName: '趋势分析' },
+      { id: 'user-1', role: 'user', content: '請分析 AAPL' },
+      { id: 'assistant-1', role: 'assistant', content: '短線震盪', skillName: '趨勢分析' },
     ];
     mockSendChat.mockRejectedValue(
       createParsedApiError({
-        title: '发送失败',
+        title: '傳送失敗',
         message: '通知渠道不可用',
         category: 'unknown',
       }),
@@ -461,15 +461,15 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: '发送到已配置的通知机器人/邮箱' }));
+    fireEvent.click(await screen.findByRole('button', { name: '傳送到已配置的通知機器人/郵箱' }));
 
     expect(await screen.findByText('通知渠道不可用')).toBeInTheDocument();
   });
 
   it('prevents duplicate notification sends while the request is in flight', async () => {
     mockStoreState.messages = [
-      { id: 'user-1', role: 'user', content: '请分析 TSLA' },
-      { id: 'assistant-1', role: 'assistant', content: '波动较大', skillName: '趋势分析' },
+      { id: 'user-1', role: 'user', content: '請分析 TSLA' },
+      { id: 'assistant-1', role: 'assistant', content: '波動較大', skillName: '趨勢分析' },
     ];
     const deferred = createDeferred<{ success: boolean }>();
     mockSendChat.mockImplementation(() => deferred.promise);
@@ -480,7 +480,7 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    const sendButton = await screen.findByRole('button', { name: '发送到已配置的通知机器人/邮箱' });
+    const sendButton = await screen.findByRole('button', { name: '傳送到已配置的通知機器人/郵箱' });
     fireEvent.click(sendButton);
 
     await waitFor(() => {
@@ -504,30 +504,30 @@ describe('ChatPage', () => {
     vi.mocked(historyApi.getDetail).mockImplementation(() => deferred.promise);
 
     render(
-      <MemoryRouter initialEntries={['/chat?stock=600519&name=%E8%B4%B5%E5%B7%9E%E8%8C%85%E5%8F%B0&recordId=1']}>
+      <MemoryRouter initialEntries={['/chat?stock=600519&name=%E8%B2%B4%E5%B7%9E%E8%8C%85%E8%87%BA&recordId=1']}>
         <ChatPage />
       </MemoryRouter>
     );
 
-    expect(await screen.findByDisplayValue('请深入分析 贵州茅台(600519)')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('請深入分析 貴州茅臺(600519)')).toBeInTheDocument();
 
-    const sendButton = screen.getByRole('button', { name: /发送|处理中\.\.\./ });
+    const sendButton = screen.getByRole('button', { name: /傳送|處理中\.\.\./ });
     expect(sendButton).not.toBeDisabled();
-    expect(screen.getByText('正在加载历史分析上下文；现在可直接发送追问。')).toBeInTheDocument();
+    expect(screen.getByText('正在載入歷史分析上下文；現在可直接傳送追問。')).toBeInTheDocument();
 
     fireEvent.click(sendButton);
 
     await waitFor(() => {
       expect(mockStartStream).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: '请深入分析 贵州茅台(600519)',
+          message: '請深入分析 貴州茅臺(600519)',
           context: {
             stock_code: '600519',
-            stock_name: '贵州茅台',
+            stock_name: '貴州茅臺',
           },
         }),
         expect.objectContaining({
-          skillName: '趋势分析',
+          skillName: '趨勢分析',
         }),
       );
     });
@@ -537,16 +537,16 @@ describe('ChatPage', () => {
         id: 1,
         queryId: 'q-1',
         stockCode: '600519',
-        stockName: '贵州茅台',
+        stockName: '貴州茅臺',
         reportType: 'detailed',
         createdAt: '2026-03-18T08:00:00Z',
         currentPrice: 1523.6,
         changePct: 1.8,
       },
       summary: {
-        analysisSummary: '趋势延续',
-        operationAdvice: '继续观察',
-        trendPrediction: '高位震荡',
+        analysisSummary: '趨勢延續',
+        operationAdvice: '繼續觀察',
+        trendPrediction: '高位震盪',
         sentimentScore: 78,
       },
       strategy: {
@@ -555,22 +555,22 @@ describe('ChatPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('正在加载历史分析上下文；现在可直接发送追问。')).not.toBeInTheDocument();
+      expect(screen.queryByText('正在載入歷史分析上下文；現在可直接傳送追問。')).not.toBeInTheDocument();
     });
 
     fireEvent.change(screen.getByPlaceholderText(/分析 600519/), {
-      target: { value: '继续分析成交量' },
+      target: { value: '繼續分析成交量' },
     });
-    fireEvent.click(screen.getByRole('button', { name: '发送' }));
+    fireEvent.click(screen.getByRole('button', { name: '傳送' }));
 
     await waitFor(() => {
       expect(mockStartStream).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          message: '继续分析成交量',
+          message: '繼續分析成交量',
           context: undefined,
         }),
         expect.objectContaining({
-          skillName: '趋势分析',
+          skillName: '趨勢分析',
         }),
       );
     });
@@ -582,16 +582,16 @@ describe('ChatPage', () => {
         id: 1,
         queryId: 'q-1',
         stockCode: '600519',
-        stockName: '贵州茅台',
+        stockName: '貴州茅臺',
         reportType: 'detailed',
         createdAt: '2026-03-18T08:00:00Z',
         currentPrice: 1523.6,
         changePct: 1.8,
       },
       summary: {
-        analysisSummary: '趋势延续',
-        operationAdvice: '继续观察',
-        trendPrediction: '高位震荡',
+        analysisSummary: '趨勢延續',
+        operationAdvice: '繼續觀察',
+        trendPrediction: '高位震盪',
         sentimentScore: 78,
       },
       strategy: {
@@ -600,26 +600,26 @@ describe('ChatPage', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/chat?stock=600519&name=%E8%B4%B5%E5%B7%9E%E8%8C%85%E5%8F%B0&recordId=1']}>
+      <MemoryRouter initialEntries={['/chat?stock=600519&name=%E8%B2%B4%E5%B7%9E%E8%8C%85%E8%87%BA&recordId=1']}>
         <ChatPage />
       </MemoryRouter>
     );
 
-    expect(await screen.findByDisplayValue('请深入分析 贵州茅台(600519)')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('請深入分析 貴州茅臺(600519)')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.queryByText('正在加载历史分析上下文；现在可直接发送追问。')).not.toBeInTheDocument();
+      expect(screen.queryByText('正在載入歷史分析上下文；現在可直接傳送追問。')).not.toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: '发送' }));
+    fireEvent.click(screen.getByRole('button', { name: '傳送' }));
 
     await waitFor(() => {
       expect(mockStartStream).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: '请深入分析 贵州茅台(600519)',
+          message: '請深入分析 貴州茅臺(600519)',
           context: expect.objectContaining({
             stock_code: '600519',
-            stock_name: '贵州茅台',
+            stock_name: '貴州茅臺',
             previous_price: 1523.6,
             previous_change_pct: 1.8,
             previous_strategy: expect.objectContaining({
@@ -628,7 +628,7 @@ describe('ChatPage', () => {
           }),
         }),
         expect.objectContaining({
-          skillName: '趋势分析',
+          skillName: '趨勢分析',
         }),
       );
     });
@@ -641,21 +641,21 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByDisplayValue('请深入分析 AAPL')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('請深入分析 AAPL')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: '发送' }));
+    fireEvent.click(screen.getByRole('button', { name: '傳送' }));
 
     await waitFor(() => {
       expect(mockStartStream).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: '请深入分析 AAPL',
+          message: '請深入分析 AAPL',
           context: {
             stock_code: 'AAPL',
             stock_name: null,
           },
         }),
         expect.objectContaining({
-          skillName: '趋势分析',
+          skillName: '趨勢分析',
         }),
       );
     });
@@ -669,7 +669,7 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole('heading', { name: '问股' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '問股' })).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/分析 600519/)).toHaveValue('');
     expect(historyApi.getDetail).not.toHaveBeenCalled();
   });
@@ -685,34 +685,34 @@ describe('ChatPage', () => {
     const router = createMemoryRouter(
       [{ path: '/chat', element: <ChatPage /> }],
       {
-        initialEntries: ['/chat?stock=600519&name=%E8%B4%B5%E5%B7%9E%E8%8C%85%E5%8F%B0&recordId=1'],
+        initialEntries: ['/chat?stock=600519&name=%E8%B2%B4%E5%B7%9E%E8%8C%85%E8%87%BA&recordId=1'],
       },
     );
 
     render(<RouterProvider router={router} />);
 
-    expect(await screen.findByDisplayValue('请深入分析 贵州茅台(600519)')).toBeInTheDocument();
-    expect(screen.getByText('正在加载历史分析上下文；现在可直接发送追问。')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('請深入分析 貴州茅臺(600519)')).toBeInTheDocument();
+    expect(screen.getByText('正在載入歷史分析上下文；現在可直接傳送追問。')).toBeInTheDocument();
 
     await router.navigate('/chat?stock=AAPL&name=Apple&recordId=2');
 
-    expect(await screen.findByDisplayValue('请深入分析 Apple(AAPL)')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('請深入分析 Apple(AAPL)')).toBeInTheDocument();
 
     firstDeferred.resolve({
       meta: {
         id: 1,
         queryId: 'q-1',
         stockCode: '600519',
-        stockName: '贵州茅台',
+        stockName: '貴州茅臺',
         reportType: 'detailed',
         createdAt: '2026-03-18T08:00:00Z',
         currentPrice: 1523.6,
         changePct: 1.8,
       },
       summary: {
-        analysisSummary: '趋势延续',
-        operationAdvice: '继续观察',
-        trendPrediction: '高位震荡',
+        analysisSummary: '趨勢延續',
+        operationAdvice: '繼續觀察',
+        trendPrediction: '高位震盪',
         sentimentScore: 78,
       },
       strategy: {
@@ -732,9 +732,9 @@ describe('ChatPage', () => {
         changePct: 2.4,
       },
       summary: {
-        analysisSummary: '趋势走强',
-        operationAdvice: '继续持有',
-        trendPrediction: '短线偏强',
+        analysisSummary: '趨勢走強',
+        operationAdvice: '繼續持有',
+        trendPrediction: '短線偏強',
         sentimentScore: 81,
       },
       strategy: {
@@ -743,15 +743,15 @@ describe('ChatPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('正在加载历史分析上下文；现在可直接发送追问。')).not.toBeInTheDocument();
+      expect(screen.queryByText('正在載入歷史分析上下文；現在可直接傳送追問。')).not.toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: '发送' }));
+    fireEvent.click(screen.getByRole('button', { name: '傳送' }));
 
     await waitFor(() => {
       expect(mockStartStream).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: '请深入分析 Apple(AAPL)',
+          message: '請深入分析 Apple(AAPL)',
           context: expect.objectContaining({
             stock_code: 'AAPL',
             stock_name: 'Apple',
@@ -763,7 +763,7 @@ describe('ChatPage', () => {
           }),
         }),
         expect.objectContaining({
-          skillName: '趋势分析',
+          skillName: '趨勢分析',
         }),
       );
     });
@@ -771,8 +771,8 @@ describe('ChatPage', () => {
 
   it('shows a jump-to-latest action when new content arrives while the user is away from bottom', async () => {
     mockStoreState.messages = [
-      { id: 'user-1', role: 'user', content: '请分析 600519' },
-      { id: 'assistant-1', role: 'assistant', content: '趋势偏强', skillName: '趋势分析' },
+      { id: 'user-1', role: 'user', content: '請分析 600519' },
+      { id: 'assistant-1', role: 'assistant', content: '趨勢偏強', skillName: '趨勢分析' },
     ];
 
     const { rerender } = render(
@@ -790,7 +790,7 @@ describe('ChatPage', () => {
 
     mockStoreState.messages = [
       ...mockStoreState.messages,
-      { id: 'assistant-2', role: 'assistant', content: '新的补充分析', skillName: '趋势分析' },
+      { id: 'assistant-2', role: 'assistant', content: '新的補充分析', skillName: '趨勢分析' },
     ];
 
     rerender(
@@ -799,7 +799,7 @@ describe('ChatPage', () => {
       </MemoryRouter>
     );
 
-    const jumpButton = await screen.findByRole('button', { name: '查看最新消息' });
+    const jumpButton = await screen.findByRole('button', { name: '檢視最新訊息' });
     expect(jumpButton).toBeInTheDocument();
 
     fireEvent.click(jumpButton);

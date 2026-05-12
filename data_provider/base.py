@@ -156,9 +156,13 @@ def _is_etf_code(code: str) -> bool:
 
 
 def _market_tag(code: str) -> str:
-    """返回市场标签: cn/us/hk."""
+    """返回市场标签: cn/us/hk/tw."""
+    from .tw_market import is_tw_stock_code as _tw_stock, is_tw_index_code as _tw_index
+
     if _is_us_market(code):
         return "us"
+    if _tw_index(code) or _tw_stock(code):
+        return "tw"
     if _is_hk_market(code):
         return "hk"
     return "cn"
@@ -900,6 +904,7 @@ class DataFetcherManager:
         from .baostock_fetcher import BaostockFetcher
         from .yfinance_fetcher import YfinanceFetcher
         from .longbridge_fetcher import LongbridgeFetcher
+        from .finmind_fetcher import FinmindFetcher
         # 创建所有数据源实例（优先级在各 Fetcher 的 __init__ 中确定）
         efinance = EfinanceFetcher()
         akshare = AkshareFetcher()
@@ -908,6 +913,7 @@ class DataFetcherManager:
         baostock = BaostockFetcher()
         yfinance = YfinanceFetcher()
         longbridge = LongbridgeFetcher()  # 长桥（美股/港股兜底，懒加载）
+        finmind = FinmindFetcher()  # 台股（FINMIND_TOKEN 設定時優先級提升）
 
         # 初始化数据源列表
         self._ensure_concurrency_guards()
@@ -920,6 +926,7 @@ class DataFetcherManager:
                 baostock,
                 yfinance,
                 longbridge,
+                finmind,
             ]
 
             # 按优先级排序（Tushare 如果配置了 Token 且初始化成功，优先级为 0）
@@ -966,6 +973,7 @@ class DataFetcherManager:
             DataFetchError: 所有数据源都失败时抛出
         """
         from .us_index_mapping import is_us_index_code, is_us_stock_code
+        from .tw_market import is_tw_stock_code as _is_tw_stock_code, is_tw_index_code as _is_tw_index_code
 
         # Normalize code (strip SH/SZ prefix etc.)
         stock_code = normalize_stock_code(stock_code)
@@ -973,6 +981,44 @@ class DataFetcherManager:
         fetchers = self._get_fetchers_snapshot()
         errors = []
         request_start = time.time()
+
+        # 台股早退路由：FinMind 為首選，YFinance 兜底
+        is_tw = _is_tw_index_code(stock_code) or _is_tw_stock_code(stock_code)
+        if is_tw:
+            tw_source_order = ["FinmindFetcher", "YfinanceFetcher"]
+            tw_label = "台股指數" if _is_tw_index_code(stock_code) else "台股"
+            for src_name in tw_source_order:
+                for attempt, fetcher in enumerate(fetchers, start=1):
+                    if fetcher.name != src_name:
+                        continue
+                    try:
+                        role = "首選" if src_name == tw_source_order[0] else "兜底"
+                        logger.info(
+                            f"[數據源嘗試] [{fetcher.name}] {tw_label} {stock_code} {role}路由..."
+                        )
+                        df = self._call_fetcher_method(
+                            fetcher,
+                            "get_daily_data",
+                            stock_code=stock_code,
+                            start_date=start_date,
+                            end_date=end_date,
+                            days=days,
+                        )
+                        if df is not None and not df.empty:
+                            elapsed = time.time() - request_start
+                            logger.info(
+                                f"[數據源完成] {stock_code} 使用 [{fetcher.name}] 取得成功: "
+                                f"rows={len(df)}, elapsed={elapsed:.2f}s"
+                            )
+                            return df, fetcher.name
+                    except Exception as e:
+                        error_type, error_reason = summarize_exception(e)
+                        errors.append(f"[{fetcher.name}] ({error_type}) {error_reason}")
+                        logger.warning(
+                            f"[數據源失敗] [{fetcher.name}] {stock_code}: {error_type} {error_reason}"
+                        )
+                    break
+            raise DataFetchError(f"{tw_label} {stock_code} 取得失敗:\n" + "\n".join(errors))
 
         # 快速路径：美股使用专用数据源路由；港股先过滤不支持港股日线的数据源
         #   - 配置长桥凭据后: Longbridge 为首选, YFinance/AkShare 兜底
@@ -1187,6 +1233,7 @@ class DataFetcherManager:
 
         from .akshare_fetcher import _is_us_code
         from .us_index_mapping import is_us_index_code
+        from .tw_market import is_tw_stock_code as _is_tw_stock_code, is_tw_index_code as _is_tw_index_code
         from src.config import get_config
 
         config = get_config()
@@ -1205,6 +1252,17 @@ class DataFetcherManager:
         is_us_index = is_us_index_code(stock_code)
         is_us = is_us_index or _is_us_code(stock_code)
         is_hk = (not is_us) and _is_hk_market(stock_code)
+        is_tw = (not is_us) and (_is_tw_stock_code(stock_code) or _is_tw_index_code(stock_code))
+
+        if is_tw:
+            # 台股即時行情：FinMind 不提供盤中即時資料，直接走 Yfinance
+            primary_quote = self._try_fetcher_quote(stock_code, "YfinanceFetcher")
+            if primary_quote is not None:
+                logger.info(f"[即時行情] 台股 {stock_code} 成功取得 (來源: YfinanceFetcher)")
+                return primary_quote
+            if log_final_failure:
+                logger.info(f"[即時行情] 台股 {stock_code} 無可用資料源")
+            return None
 
         if is_us or is_hk:
             prefer_lb = self._longbridge_preferred() and not is_us_index
@@ -1526,12 +1584,17 @@ class DataFetcherManager:
 
         # 3. 依次尝试各个数据源
         from .akshare_fetcher import _is_us_code
+        from .tw_market import is_tw_stock_code as _tw_stock, is_tw_index_code as _tw_index
         is_us = _is_us_code(stock_code)
+        is_tw = (not is_us) and (_tw_stock(stock_code) or _tw_index(stock_code))
         _US_CAPABLE_FETCHERS = {"YfinanceFetcher", "LongbridgeFetcher"}
+        _TW_CAPABLE_FETCHERS = {"YfinanceFetcher", "FinmindFetcher"}
         for fetcher in self._get_fetchers_snapshot():
             if not hasattr(fetcher, 'get_stock_name'):
                 continue
             if is_us and fetcher.name not in _US_CAPABLE_FETCHERS:
+                continue
+            if is_tw and fetcher.name not in _TW_CAPABLE_FETCHERS:
                 continue
             try:
                 name = self._call_fetcher_method(fetcher, 'get_stock_name', stock_code)
@@ -2110,8 +2173,15 @@ class DataFetcherManager:
             bundle_ms = 0
         else:
             bundle_timeout = min(fetch_timeout, remaining_seconds)
+            # 台股早退：直接走 FinmindFetcher，不經 Akshare adapter
+            bundle_provider = lambda: self._fundamental_adapter.get_fundamental_bundle(stock_code)
+            if _market_tag(stock_code) == "tw":
+                for _f in self._get_fetchers_snapshot():
+                    if _f.name == "FinmindFetcher" and hasattr(_f, "get_fundamental_bundle"):
+                        bundle_provider = lambda f=_f: f.get_fundamental_bundle(stock_code)
+                        break
             bundle_payload, bundle_err_msg, bundle_ms = self._run_with_retry(
-                lambda: self._fundamental_adapter.get_fundamental_bundle(stock_code),
+                bundle_provider,
                 bundle_timeout,
                 "fundamental_bundle",
             )

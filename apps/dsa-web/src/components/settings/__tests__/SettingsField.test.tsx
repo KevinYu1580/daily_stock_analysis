@@ -79,8 +79,8 @@ describe('SettingsField', () => {
       />
     );
 
-    expect(screen.getAllByRole('button', { name: '显示内容' })).toHaveLength(2);
-    expect(screen.getAllByRole('button', { name: '删除' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: '顯示內容' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: '刪除' })).toHaveLength(2);
   });
 
   it('renders localized custom webhook body template guidance', () => {
@@ -111,9 +111,9 @@ describe('SettingsField', () => {
       />
     );
 
-    expect(screen.getByLabelText('自定义 Webhook Body 模板')).toBeInTheDocument();
-    expect(screen.getByText(/会先于 Bark、Slack、Discord 等自动 payload 生效/)).toBeInTheDocument();
-    expect(screen.getByText(/裸 \$content \/ \$title 不做 JSON 转义/)).toBeInTheDocument();
+    expect(screen.getByLabelText('自定義 Webhook Body 模板')).toBeInTheDocument();
+    expect(screen.getByText(/會先於 Bark、Slack、Discord 等自動 payload 生效/)).toBeInTheDocument();
+    expect(screen.getByText(/裸 \$content \/ \$title 不做 JSON 轉義/)).toBeInTheDocument();
   });
 
   it('opens detailed field help when help metadata is available', () => {
@@ -151,14 +151,14 @@ describe('SettingsField', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '查看 自选股列表 配置说明' }));
+    fireEvent.click(screen.getByRole('button', { name: '檢視 自選股列表 配置說明' }));
 
-    expect(screen.getByRole('dialog', { name: '自选股列表' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: '自選股列表' })).toBeInTheDocument();
     expect(screen.getByText('STOCK_LIST=600519,300750,002594')).toBeInTheDocument();
     const docLink = screen.getByRole('link', { name: /完整指南/ });
     expect(docLink).toHaveAttribute('href', 'https://example.com/full-guide');
 
-    const closeButtons = screen.getAllByRole('button', { name: '关闭配置说明' });
+    const closeButtons = screen.getAllByRole('button', { name: '關閉配置說明' });
     expect(closeButtons[0].tabIndex).toBe(-1);
     const closeButton = closeButtons.find((button) => button.tabIndex !== -1);
     expect(closeButton).toBeDefined();
@@ -171,6 +171,6 @@ describe('SettingsField', () => {
     expect(closeButton).toHaveFocus();
 
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.queryByRole('dialog', { name: '自选股列表' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: '自選股列表' })).not.toBeInTheDocument();
   });
 });

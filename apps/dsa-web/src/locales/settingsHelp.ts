@@ -14,89 +14,89 @@ type SettingsHelpMap = Record<string, SettingsHelpContent>;
 
 const settingsHelpZhCN: SettingsHelpMap = {
   'settings.base.STOCK_LIST': {
-    title: '自选股列表',
-    summary: '配置需要分析的股票代码列表，是手动分析、定时任务和通知报告的基础输入。',
-    usage: '多个股票代码使用英文逗号分隔。A 股可直接填写 6 位代码，港股可使用 hk 前缀，美股可填写 ticker。',
+    title: '自選股列表',
+    summary: '配置需要分析的股票程式碼列表，是手動分析、定時任務和通知報告的基礎輸入。',
+    usage: '多個股票程式碼使用英文逗號分隔。A 股可直接填寫 6 位程式碼，港股可使用 hk 字首，美股可填寫 ticker。',
     valueNotes: [
-      '定时模式每次触发前会重新读取当前保存的 STOCK_LIST。',
-      '如果命令行临时传入 --stocks，只影响本次手动运行，不会锁定后续计划任务。',
-      '邮件分组里的 STOCK_GROUP_N 应写成 STOCK_LIST 的子集，只影响邮件收件人，不改变分析范围。',
+      '定時模式每次觸發前會重新讀取當前儲存的 STOCK_LIST。',
+      '如果命令列臨時傳入 --stocks，隻影響本次手動執行，不會鎖定後續計劃任務。',
+      '郵件分組裡的 STOCK_GROUP_N 應寫成 STOCK_LIST 的子集，隻影響郵件收件人，不改變分析範圍。',
     ],
     impact: [
-      '影响主分析任务、市场报告中的个股范围、通知推送内容和历史报告记录。',
+      '影響主分析任務、市場報告中的個股範圍、通知推送內容和歷史報告記錄。',
     ],
     notes: [
-      '股票代码之间不要使用中文逗号。',
-      '修改后保存配置即可供后续任务读取。',
+      '股票程式碼之間不要使用中文逗號。',
+      '修改後儲存配置即可供後續任務讀取。',
     ],
   },
   'settings.ai_model.LITELLM_MODEL': {
     title: '主模型',
-    summary: '指定普通分析流程默认使用的 LLM 模型。',
-    usage: '推荐使用 provider/model 格式，例如 deepseek/deepseek-v4-flash、gemini/gemini-3.1-pro-preview 或 ollama/qwen3:8b。',
+    summary: '指定普通分析流程預設使用的 LLM 模型。',
+    usage: '推薦使用 provider/model 格式，例如 deepseek/deepseek-v4-flash、gemini/gemini-3.1-pro-preview 或 ollama/qwen3:8b。',
     valueNotes: [
-      '系统配置优先级为 LITELLM_CONFIG > LLM_CHANNELS > legacy provider keys。',
-      '如果留空，系统会尝试根据已配置的 API Key 或渠道声明自动推断。',
-      'Agent 可通过 AGENT_LITELLM_MODEL 单独指定模型；留空时继承主模型。',
+      '系統配置優先順序為 LITELLM_CONFIG > LLM_CHANNELS > legacy provider keys。',
+      '如果留空，系統會嘗試根據已配置的 API Key 或渠道宣告自動推斷。',
+      'Agent 可通過 AGENT_LITELLM_MODEL 單獨指定模型；留空時繼承主模型。',
     ],
     impact: [
-      '影响普通个股分析、大盘复盘、报告生成，以及未单独覆盖模型的 Agent 调用。',
+      '影響普通個股分析、大盤覆盤、報告生成，以及未單獨覆蓋模型的 Agent 呼叫。',
     ],
     notes: [
-      '无 provider 前缀时，LiteLLM 可能无法判断应该使用哪组 API Key。',
-      'Ollama 本地模型应配合 OLLAMA_API_BASE 或 Ollama 渠道使用，不要误用 OPENAI_BASE_URL。',
+      '無 provider 字首時，LiteLLM 可能無法判斷應該使用哪組 API Key。',
+      'Ollama 本地模型應配合 OLLAMA_API_BASE 或 Ollama 渠道使用，不要誤用 OPENAI_BASE_URL。',
     ],
   },
   'settings.ai_model.LLM_CHANNELS': {
     title: 'LLM 渠道列表',
-    summary: '声明多个模型渠道，用于多 provider、多 Key、备用模型和可视化渠道管理。',
-    usage: '填写逗号分隔的渠道名，例如 deepseek,aihubmix；每个渠道再配置 LLM_<NAME>_BASE_URL、LLM_<NAME>_API_KEY(S)、LLM_<NAME>_MODELS 等字段。',
+    summary: '宣告多個模型渠道，用於多 provider、多 Key、備用模型和視覺化渠道管理。',
+    usage: '填寫逗號分隔的渠道名，例如 deepseek,aihubmix；每個渠道再配置 LLM_<NAME>_BASE_URL、LLM_<NAME>_API_KEY(S)、LLM_<NAME>_MODELS 等欄位。',
     valueNotes: [
-      '启用渠道模式后，同层运行时优先读取渠道配置。',
-      '在 Docker 或 GitHub Actions 中显式注入的环境变量会覆盖 Web 设置页写入的 .env。',
-      '渠道编辑器保存时只更新本次提交的 key，不会静默迁移整个旧配置。',
+      '啟用渠道模式後，同層執行時優先讀取渠道配置。',
+      '在 Docker 或 GitHub Actions 中顯式注入的環境變數會覆蓋 Web 設定頁寫入的 .env。',
+      '渠道編輯器儲存時只更新本次提交的 key，不會靜默遷移整個舊配置。',
     ],
     impact: [
-      '影响主模型、Agent 模型、fallback 模型和 Vision 模型的可选来源。',
+      '影響主模型、Agent 模型、fallback 模型和 Vision 模型的可選來源。',
     ],
     notes: [
-      '不要把极简 legacy key 和 Channels 混用后期待两边同时生效。',
-      '自定义渠道名在 GitHub Actions 中通常还需要 workflow 显式映射对应环境变量。',
+      '不要把極簡 legacy key 和 Channels 混用後期待兩邊同時生效。',
+      '自定義渠道名在 GitHub Actions 中通常還需要 workflow 顯式對映對應環境變數。',
     ],
   },
   'settings.notification.FEISHU_WEBHOOK_URL': {
-    title: '飞书群机器人 Webhook',
-    summary: '配置飞书自定义群机器人，用于把分析报告推送到指定飞书群。',
-    usage: '在飞书群中添加自定义机器人后，复制 open-apis/bot/v2/hook 开头的 Webhook URL 到这里。',
+    title: '飛書群機器人 Webhook',
+    summary: '配置飛書自定義群機器人，用於把分析報告推送到指定飛書群。',
+    usage: '在飛書群中新增自定義機器人後，複製 open-apis/bot/v2/hook 開頭的 Webhook URL 到這裡。',
     valueNotes: [
-      '如果机器人开启“签名校验”，还需要填写 FEISHU_WEBHOOK_SECRET。',
-      '如果机器人开启“关键词”，还需要填写 FEISHU_WEBHOOK_KEYWORD，系统会自动补到消息前。',
-      'FEISHU_APP_ID / FEISHU_APP_SECRET 用于飞书应用、云文档或 Stream Bot，不会直接启用群 Webhook 推送。',
+      '如果機器人開啟“簽名校驗”，還需要填寫 FEISHU_WEBHOOK_SECRET。',
+      '如果機器人開啟“關鍵詞”，還需要填寫 FEISHU_WEBHOOK_KEYWORD，系統會自動補到訊息前。',
+      'FEISHU_APP_ID / FEISHU_APP_SECRET 用於飛書應用、雲文件或 Stream Bot，不會直接啟用群 Webhook 推送。',
     ],
     impact: [
-      '影响飞书通知渠道；失败时不应拖垮主分析流程，只影响该渠道送达。',
+      '影響飛書通知渠道；失敗時不應拖垮主分析流程，隻影響該渠道送達。',
     ],
     notes: [
-      '不要把 FEISHU_APP_SECRET 当作 FEISHU_WEBHOOK_SECRET 使用。',
-      '如果飞书侧配置 IP 白名单，需要确认当前运行环境出口 IP 已加入白名单。',
+      '不要把 FEISHU_APP_SECRET 當作 FEISHU_WEBHOOK_SECRET 使用。',
+      '如果飛書側配置 IP 白名單，需要確認當前執行環境出口 IP 已加入白名單。',
     ],
   },
   'settings.system.WEBUI_HOST': {
-    title: 'WebUI 监听地址',
-    summary: '控制 WebUI 服务绑定在哪个网络地址上。',
-    usage: '本机访问通常使用 127.0.0.1；云服务器、Docker 或需要外部访问时通常使用 0.0.0.0。',
+    title: 'WebUI 監聽地址',
+    summary: '控制 WebUI 服務繫結在哪個網路地址上。',
+    usage: '本機訪問通常使用 127.0.0.1；雲伺服器、Docker 或需要外部訪問時通常使用 0.0.0.0。',
     valueNotes: [
-      '.env 里的 WEBUI_HOST 在进程启动读取时优先级高于命令行 --host 参数。',
-      '在设置页保存后，只会写入 .env 并重载运行时配置对象，不会让当前 WebUI/API 进程重新绑定监听地址。',
-      'Docker Compose 中通常会在容器内使用 0.0.0.0，宿主机访问还取决于端口映射。',
+      '.env 裡的 WEBUI_HOST 在程序啟動讀取時優先順序高於命令列 --host 引數。',
+      '在設定頁儲存後，只會寫入 .env 並重載執行時配置物件，不會讓當前 WebUI/API 程序重新繫結監聽地址。',
+      'Docker Compose 中通常會在容器內使用 0.0.0.0，宿主機訪問還取決於埠對映。',
     ],
     impact: [
-      '影响重启后浏览器能否从本机、局域网或公网访问 WebUI。',
+      '影響重啟後瀏覽器能否從本機、區域網或公網訪問 WebUI。',
     ],
     notes: [
-      '修改 WEBUI_HOST 后需要重启当前进程、Docker 容器或服务管理器才会生效。',
-      '直连公网时建议同时启用 ADMIN_AUTH_ENABLED。',
-      '如果部署在反向代理后面，登录限流与真实 IP 识别还需要评估 TRUST_X_FORWARDED_FOR。',
+      '修改 WEBUI_HOST 後需要重啟當前程序、Docker 容器或服務管理器才會生效。',
+      '直連公網時建議同時啟用 ADMIN_AUTH_ENABLED。',
+      '如果部署在反向代理後面，登入限流與真實 IP 識別還需要評估 TRUST_X_FORWARDED_FOR。',
     ],
   },
 };
@@ -200,7 +200,7 @@ export function getSettingsHelpContent(
 
   if (fallbackDescription) {
     return {
-      title: '配置说明',
+      title: '配置說明',
       summary: fallbackDescription,
     };
   }

@@ -56,12 +56,20 @@ class AnalyzeCommand(BotCommand):
         # A股：6位数字
         # 港股：HK+5位数字
         # 美股：1-5个大写字母+.+2个后缀字母
+        # 台股：4位数字 / TW+4-5位數字 / *.TW *.TWO / 台股指數 TWII/TWO/TW50
         is_a_stock = re.match(r'^\d{6}$', code)
         is_hk_stock = re.match(r'^HK\d{5}$', code)
         is_us_stock = re.match(r'^[A-Z]{1,5}(\.[A-Z]{1,2})?$', code)
+        is_tw_stock = (
+            re.match(r'^\d{4}$', code)
+            or re.match(r'^TW\d{4,5}$', code)
+            or code.endswith('.TW')
+            or code.endswith('.TWO')
+            or code in {'TWII', 'TWO', 'TW50'}
+        )
 
-        if not (is_a_stock or is_hk_stock or is_us_stock):
-            return f"无效的股票代码: {code}（A股6位数字 / 港股HK+5位数字 / 美股1-5个字母）"
+        if not (is_a_stock or is_hk_stock or is_us_stock or is_tw_stock):
+            return f"无效的股票代码: {code}（A股6位数字 / 港股HK+5位数字 / 美股1-5个字母 / 台股4位數字）"
         
         return None
     

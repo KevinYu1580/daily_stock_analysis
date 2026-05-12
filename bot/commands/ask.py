@@ -96,9 +96,16 @@ class AskCommand(BotCommand):
         is_a_stock = re.match(r"^\d{6}$", normalized)
         is_hk_stock = re.match(r"^HK\d{5}$", normalized)
         is_us_stock = re.match(r"^[A-Z]{1,5}(\.[A-Z]{1,2})?$", normalized)
+        is_tw_stock = (
+            re.match(r"^\d{4}$", normalized)
+            or re.match(r"^TW\d{4,5}$", normalized)
+            or normalized.endswith(".TW")
+            or normalized.endswith(".TWO")
+            or normalized in {"TWII", "TWO", "TW50"}
+        )
 
-        if not (is_a_stock or is_hk_stock or is_us_stock):
-            return f"无效的股票代码: {normalized}（A股6位数字 / 港股HK+5位数字 / 美股1-5个字母）"
+        if not (is_a_stock or is_hk_stock or is_us_stock or is_tw_stock):
+            return f"无效的股票代码: {normalized}（A股6位数字 / 港股HK+5位数字 / 美股1-5个字母 / 台股4位數字）"
         return None
 
     def validate_args(self, args: List[str]) -> Optional[str]:

@@ -2238,6 +2238,18 @@ class SearchService:
             return True
         return False
 
+    @staticmethod
+    def _is_taiwan_stock(stock_code: str) -> bool:
+        """判斷是否為台股（純 4 碼數字、tw 前綴、.TW(.TWO) 後綴、台股指數）。"""
+        code = (stock_code or "").strip().upper()
+        if code in {"TWII", "TWO", "TW50"}:
+            return True
+        if code.endswith(".TW") or code.endswith(".TWO"):
+            return True
+        if code.startswith("TW") and code[2:].isdigit() and len(code) in (6, 7):
+            return True
+        return code.isdigit() and len(code) == 4
+
     @classmethod
     def _contains_chinese_text(cls, value: Optional[str]) -> bool:
         """Return True when the input contains CJK characters."""
@@ -2979,9 +2991,57 @@ class SearchService:
         search_count = 0
 
         is_foreign = self._is_foreign_stock(stock_code)
+        is_taiwan = self._is_taiwan_stock(stock_code)
         is_index_etf = self.is_index_or_etf(stock_code, stock_name)
 
-        if is_foreign:
+        if is_taiwan:
+            search_dimensions = [
+                {
+                    'name': 'latest_news',
+                    'query': f"{stock_name} {stock_code} 最新 新聞 重大 事件",
+                    'desc': '最新消息',
+                    'tavily_topic': 'news',
+                    'strict_freshness': True,
+                },
+                {
+                    'name': 'market_analysis',
+                    'query': f"{stock_name} 法人 目標價 評等 研究報告 法說會",
+                    'desc': '機構分析',
+                    'tavily_topic': None,
+                    'strict_freshness': False,
+                },
+                {
+                    'name': 'risk_check',
+                    'query': (
+                        f"{stock_name} 大盤 加權指數 走勢 連動"
+                        if is_index_etf else f"{stock_name} 處分 訴訟 利空 風險 重大訊息"
+                    ),
+                    'desc': '風險排查',
+                    'tavily_topic': None if is_index_etf else 'news',
+                    'strict_freshness': not is_index_etf,
+                },
+                {
+                    'name': 'earnings',
+                    'query': (
+                        f"{stock_name} 加權指數 表現 走勢 展望"
+                        if is_index_etf else f"{stock_name} 月營收 EPS 法說會 業績 展望"
+                    ),
+                    'desc': '業績預期',
+                    'tavily_topic': None,
+                    'strict_freshness': False,
+                },
+                {
+                    'name': 'industry',
+                    'query': (
+                        f"{stock_name} 加權指數 成分股 權值 配置"
+                        if is_index_etf else f"{stock_name} 產業 競爭 市佔 供應鏈 展望"
+                    ),
+                    'desc': '產業分析',
+                    'tavily_topic': None,
+                    'strict_freshness': False,
+                },
+            ]
+        elif is_foreign:
             search_dimensions = [
                 {
                     'name': 'latest_news',

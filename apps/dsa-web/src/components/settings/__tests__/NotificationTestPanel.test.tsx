@@ -45,7 +45,7 @@ describe('NotificationTestPanel', () => {
     );
 
     fireEvent.change(screen.getByLabelText('渠道'), { target: { value: 'custom' } });
-    fireEvent.click(screen.getByRole('button', { name: /发送测试/ }));
+    fireEvent.click(screen.getByRole('button', { name: /傳送測試/ }));
 
     await waitFor(() => expect(testNotificationChannel).toHaveBeenCalledWith(expect.objectContaining({
       channel: 'custom',
@@ -53,7 +53,7 @@ describe('NotificationTestPanel', () => {
       maskToken: '******',
       timeoutSeconds: 20,
     })));
-    expect(await screen.findByText('测试成功')).toBeInTheDocument();
+    expect(await screen.findByText('測試成功')).toBeInTheDocument();
     expect(screen.getByText('HTTP 200')).toBeInTheDocument();
     expect(screen.getByText('https://example.com/hook?token=***')).toBeInTheDocument();
   });

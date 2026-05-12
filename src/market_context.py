@@ -17,12 +17,23 @@ def detect_market(stock_code: Optional[str]) -> str:
     """Detect market from stock code.
 
     Returns:
-        One of 'cn', 'hk', 'us', or 'cn' as fallback.
+        One of 'cn', 'hk', 'us', 'tw', or 'cn' as fallback.
     """
     if not stock_code:
         return "cn"
 
     code = stock_code.strip().upper()
+
+    # 台股指數
+    if code in {"TWII", "TWO", "TW50"}:
+        return "tw"
+    # 台股：純 4 碼數字、tw 前綴、.TW(.TWO) 後綴
+    if code.endswith(".TW") or code.endswith(".TWO"):
+        return "tw"
+    if code.startswith("TW") and code[2:].isdigit() and len(code) in (6, 7):
+        return "tw"
+    if code.isdigit() and len(code) == 4:
+        return "tw"
 
     # HK stocks: HK00700, 00700.HK, or 5-digit pure numbers
     if code.startswith("HK") or code.endswith(".HK"):
@@ -58,6 +69,10 @@ _MARKET_ROLES = {
         "zh": "美股",
         "en": "US stock",
     },
+    "tw": {
+        "zh": "台股",
+        "en": "Taiwan stock",
+    },
 }
 
 _MARKET_GUIDELINES = {
@@ -89,6 +104,25 @@ _MARKET_GUIDELINES = {
         "en": (
             "- This analysis covers a **US stock** (listed on NYSE/NASDAQ).\n"
             "- US stocks have no daily price limits (but have circuit breakers), allow T+0 and pre/after-market trading. Consider USD FX, Fed policy, and SEC regulations."
+        ),
+    },
+    "tw": {
+        "zh": (
+            "- 本次分析對象為 **台股**（台灣證券交易所/櫃買中心上市櫃股票）。\n"
+            "- 台股漲跌幅限制 ±10%（一般股票），新上市前 5 個交易日不設限；採 T+2 交割（券款交割）。\n"
+            "- 須留意三大法人買賣超（外資、投信、自營商）動向，外資籌碼為主導力量。\n"
+            "- 月營收於每月 10 日前公告，年報/季報依規定揭露；觀察月營收 YoY/MoM 為短線重要訊號。\n"
+            "- 加權指數受權值股（台積電、鴻海、聯發科等）主導，分析個股需考量大盤連動與類股輪動。\n"
+            "- 美股費半（SOX）、AI/HPC 供應鏈訊息對台股科技類股影響顯著。\n"
+            "- 所有輸出（包含 trend_prediction、operation_advice、敘述性摘要）必須使用**繁體中文**，禁止使用簡體字。"
+        ),
+        "en": (
+            "- This analysis covers a **Taiwan stock** (listed on TWSE or TPEx).\n"
+            "- Daily price limit ±10% (waived for first 5 days of newly listed stocks); T+2 settlement.\n"
+            "- Pay attention to the Three Major Institutional Investors (Foreign, Investment Trust, Dealer) — foreign capital is the dominant force.\n"
+            "- Monthly revenue is disclosed before the 10th of each month; YoY/MoM revenue growth is a key short-term signal.\n"
+            "- The TAIEX is dominated by heavyweight stocks (TSMC, Hon Hai, MediaTek). Consider index correlation and sector rotation.\n"
+            "- US semiconductor index (SOX) and AI/HPC supply chain news significantly impact Taiwan tech stocks."
         ),
     },
 }

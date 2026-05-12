@@ -12,14 +12,14 @@ import { ApiErrorAlert, Badge, Button, InlineAlert, Input, Select } from '../com
 import { SettingsSectionCard } from './SettingsSectionCard';
 
 const CHANNEL_OPTIONS: Array<{ value: NotificationTestChannel; label: string }> = [
-  { value: 'wechat', label: '企业微信' },
-  { value: 'feishu', label: '飞书 Webhook' },
+  { value: 'wechat', label: '企業微信' },
+  { value: 'feishu', label: '飛書 Webhook' },
   { value: 'telegram', label: 'Telegram' },
-  { value: 'email', label: '邮件' },
+  { value: 'email', label: '郵件' },
   { value: 'pushover', label: 'Pushover' },
   { value: 'pushplus', label: 'PushPlus' },
-  { value: 'serverchan3', label: 'Server酱3' },
-  { value: 'custom', label: '自定义 Webhook' },
+  { value: 'serverchan3', label: 'Server醬3' },
+  { value: 'custom', label: '自定義 Webhook' },
   { value: 'discord', label: 'Discord' },
   { value: 'slack', label: 'Slack' },
   { value: 'astrbot', label: 'AstrBot' },
@@ -43,8 +43,8 @@ export const NotificationTestPanel: React.FC<NotificationTestPanelProps> = ({
   disabled = false,
 }) => {
   const [channel, setChannel] = useState<NotificationTestChannel>('wechat');
-  const [title, setTitle] = useState('DSA 通知测试');
-  const [content, setContent] = useState('这是一条来自 DSA Web 设置页的通知测试消息。');
+  const [title, setTitle] = useState('DSA 通知測試');
+  const [content, setContent] = useState('這是一條來自 DSA Web 設定頁的通知測試訊息。');
   const [timeoutSeconds, setTimeoutSeconds] = useState('20');
   const [result, setResult] = useState<TestNotificationChannelResponse | null>(null);
   const [error, setError] = useState<ParsedApiError | null>(null);
@@ -64,8 +64,8 @@ export const NotificationTestPanel: React.FC<NotificationTestPanelProps> = ({
         channel,
         items: normalizedItems,
         maskToken,
-        title: title.trim() || 'DSA 通知测试',
-        content: content.trim() || '这是一条来自 DSA Web 设置页的通知测试消息。',
+        title: title.trim() || 'DSA 通知測試',
+        content: content.trim() || '這是一條來自 DSA Web 設定頁的通知測試訊息。',
         timeoutSeconds: clampTimeout(timeoutSeconds),
       });
       setResult(payload);
@@ -78,8 +78,8 @@ export const NotificationTestPanel: React.FC<NotificationTestPanelProps> = ({
 
   return (
     <SettingsSectionCard
-      title="通知测试"
-      description="使用当前页面草稿发送一条真实测试通知；测试不会保存配置。"
+      title="通知測試"
+      description="使用當前頁面草稿傳送一條真實測試通知；測試不會儲存配置。"
       actions={(
         <Button
           type="button"
@@ -88,10 +88,10 @@ export const NotificationTestPanel: React.FC<NotificationTestPanelProps> = ({
           onClick={() => void runTest()}
           disabled={disabled || isTesting}
           isLoading={isTesting}
-          loadingText="测试中..."
+          loadingText="測試中..."
         >
           <Send className="h-4 w-4" />
-          发送测试
+          傳送測試
         </Button>
       )}
     >
@@ -104,14 +104,14 @@ export const NotificationTestPanel: React.FC<NotificationTestPanelProps> = ({
           onChange={(value) => setChannel(value as NotificationTestChannel)}
         />
         <Input
-          label="标题"
+          label="標題"
           value={title}
           maxLength={80}
           disabled={disabled || isTesting}
           onChange={(event) => setTitle(event.target.value)}
         />
         <Input
-          label="超时秒数"
+          label="超時秒數"
           type="number"
           min={1}
           max={120}
@@ -140,7 +140,7 @@ export const NotificationTestPanel: React.FC<NotificationTestPanelProps> = ({
         <div className="space-y-3">
           <InlineAlert
             variant={result.success ? 'success' : 'danger'}
-            title={result.success ? '测试成功' : '测试失败'}
+            title={result.success ? '測試成功' : '測試失敗'}
             message={(
               <span>
                 {result.message}
@@ -161,7 +161,7 @@ export const NotificationTestPanel: React.FC<NotificationTestPanelProps> = ({
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant={attempt.success ? 'success' : 'danger'}>
-                          {attempt.success ? '成功' : '失败'}
+                          {attempt.success ? '成功' : '失敗'}
                         </Badge>
                         <span className="text-sm font-medium text-foreground">
                           Attempt {index + 1}

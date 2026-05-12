@@ -40,6 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - [文档] 新增可审计兼容证据交叉链：`Config._load_from_env()` 优先级为 `LITELLM_CONFIG` > `LLM_CHANNELS` > legacy，回退路径与回滚策略与 `tests/test_llm_channel_config.py`、`tests/test_market_review_runtime.py`、`tests/test_analysis_api_contract.py` 对齐。
 - [修复] 修正大盘复盘 Windows fallback 锁的进程存活探测，避免使用 `os.kill(pid, 0)` 误伤正在运行的复盘进程。
 - [改进] Web 首页接入首次启动配置状态，基础配置未完成时提示缺口并引导进入系统设置。
+- [改进] Web 前端界面文案统一改为繁体中文（台湾用语），`apps/dsa-web/src` 全量 OpenCC `s2twp` 转换并重新构建 `static/` 产物，`<html lang>` 改为 `zh-Hant`；保留与后端跨界比对字符串（如 `必须提供 stock_code 或 stock_codes`）不变。
+- [改进] 个股决策与 Agent 提示词输出语言要求改为「繁体中文（台湾用语），禁止简体字」，新生成报告内容随之输出繁体；`src/report_language.py` 的 `_REPORT_LABELS["zh"]` 展示标签转为繁体。
+- [chore] 新增 `scripts/s2twp_convert.py` 批量简转繁工具（支持保留字符串白名单），并新增 `run.sh` 本地启动脚本（自动创建 venv、安装依赖、打印服务网址）。
 
 ## [3.15.0] - 2026-05-05
 

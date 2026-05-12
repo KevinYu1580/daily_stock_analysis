@@ -60,13 +60,13 @@ beforeEach(() => {
       {
         analysisHistoryId: 101,
         code: '600519',
-        stockName: '贵州茅台',
+        stockName: '貴州茅臺',
         analysisDate: '2026-03-20',
         evalWindowDays: 10,
         engineVersion: 'test-engine',
         evalStatus: 'completed',
-        operationAdvice: '继续持有',
-        trendPrediction: '震荡偏多',
+        operationAdvice: '繼續持有',
+        trendPrediction: '震盪偏多',
         actualMovement: 'up',
         actualReturnPct: 3.8,
         directionExpected: 'long',
@@ -100,8 +100,8 @@ describe('BacktestPage', () => {
     expect(await screen.findByText('WIN')).toBeInTheDocument();
     expect(screen.getByText('completed')).toBeInTheDocument();
     expect(screen.getByText('600519')).toBeInTheDocument();
-    expect(screen.getByText('贵州茅台')).toBeInTheDocument();
-    expect(screen.getByText('震荡偏多')).toBeInTheDocument();
+    expect(screen.getByText('貴州茅臺')).toBeInTheDocument();
+    expect(screen.getByText('震盪偏多')).toBeInTheDocument();
     expect(screen.getByText('UP')).toBeInTheDocument();
     expect(screen.getByText('Window Return')).toBeInTheDocument();
     expect(screen.getByText('Direction Match')).toBeInTheDocument();

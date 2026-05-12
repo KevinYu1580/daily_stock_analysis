@@ -73,8 +73,8 @@ vi.mock('../../utils/constants', async () => {
 });
 
 vi.mock('../../components/settings', () => ({
-  AuthSettingsCard: () => <div>认证与登录保护</div>,
-  ChangePasswordCard: () => <div>修改密码</div>,
+  AuthSettingsCard: () => <div>認證與登入保護</div>,
+  ChangePasswordCard: () => <div>修改密碼</div>,
   IntelligentImport: ({ onMerged }: { onMerged: (value: string) => void }) => (
     <button type="button" onClick={() => onMerged('SZ000001,SZ000002')}>
       merge stock list
@@ -93,7 +93,7 @@ vi.mock('../../components/settings', () => ({
     </button>
   ),
   NotificationTestPanel: ({ items }: { items: Array<{ key: string; value: string }> }) => (
-    <div>通知测试面板:{items.map((item) => item.key).join(',')}</div>
+    <div>通知測試面板:{items.map((item) => item.key).join(',')}</div>
   ),
   SettingsAlert: ({
     title,
@@ -168,8 +168,8 @@ function createDesktopRuntime(overrides: Record<string, unknown> = {}) {
 }
 
 const baseCategories = [
-  { category: 'system', title: 'System', description: '系统设置', displayOrder: 1, fields: [] },
-  { category: 'base', title: 'Base', description: '基础配置', displayOrder: 2, fields: [] },
+  { category: 'system', title: 'System', description: '系統設定', displayOrder: 1, fields: [] },
+  { category: 'base', title: 'Base', description: '基礎配置', displayOrder: 2, fields: [] },
   { category: 'ai_model', title: 'AI', description: '模型配置', displayOrder: 3, fields: [] },
   { category: 'notification', title: 'Notification', description: '通知配置', displayOrder: 4, fields: [] },
   { category: 'agent', title: 'Agent', description: 'Agent 配置', displayOrder: 5, fields: [] },
@@ -369,7 +369,7 @@ describe('SettingsPage', () => {
       status: 'up-to-date',
       currentVersion: '3.12.0',
       latestVersion: '3.12.0',
-      message: '当前桌面端已是最新版本。',
+      message: '當前桌面端已是最新版本。',
     });
     desktopOpenReleasePage.mockResolvedValue(true);
     desktopOnUpdateStateChange.mockImplementation(() => () => undefined);
@@ -388,16 +388,16 @@ describe('SettingsPage', () => {
   it('renders category navigation and auth settings modules', async () => {
     render(<SettingsPage />);
 
-    expect(await screen.findByRole('heading', { name: '系统设置' })).toBeInTheDocument();
-    expect(screen.getByText('认证与登录保护')).toBeInTheDocument();
-    expect(screen.getByText('修改密码')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '系統設定' })).toBeInTheDocument();
+    expect(screen.getByText('認證與登入保護')).toBeInTheDocument();
+    expect(screen.getByText('修改密碼')).toBeInTheDocument();
     expect(load).toHaveBeenCalled();
   });
 
   it('renders web build info in system settings', async () => {
     render(<SettingsPage />);
 
-    expect(await screen.findByRole('heading', { name: '版本信息' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '版本資訊' })).toBeInTheDocument();
     expect(screen.getByText('3.11.0')).toBeInTheDocument();
     expect(screen.getByText('build-20260329-021530Z')).toBeInTheDocument();
     expect(screen.getByText('2026-03-29T02:15:30.000Z')).toBeInTheDocument();
@@ -408,7 +408,7 @@ describe('SettingsPage', () => {
 
     render(<SettingsPage />);
 
-    expect(await screen.findByRole('heading', { name: '版本信息' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '版本資訊' })).toBeInTheDocument();
     expect(screen.getByText('桌面端版本')).toBeInTheDocument();
     expect(screen.getByText('3.12.0')).toBeInTheDocument();
   });
@@ -418,7 +418,7 @@ describe('SettingsPage', () => {
 
     render(<SettingsPage />);
 
-    const section = (await screen.findByRole('heading', { name: '版本信息' })).closest('section');
+    const section = (await screen.findByRole('heading', { name: '版本資訊' })).closest('section');
     const versionGrid = section?.querySelector('div.grid.grid-cols-1.gap-3');
 
     expect(screen.queryByText('桌面端版本')).not.toBeInTheDocument();
@@ -431,7 +431,7 @@ describe('SettingsPage', () => {
 
     render(<SettingsPage />);
 
-    const section = (await screen.findByRole('heading', { name: '版本信息' })).closest('section');
+    const section = (await screen.findByRole('heading', { name: '版本資訊' })).closest('section');
     const versionGrid = section?.querySelector('div.grid.grid-cols-1.gap-3');
 
     expect(screen.queryByText('桌面端版本')).not.toBeInTheDocument();
@@ -456,9 +456,9 @@ describe('SettingsPage', () => {
     await waitFor(() => {
       expect(desktopGetUpdateState).toHaveBeenCalledTimes(1);
     });
-    expect(screen.getByRole('button', { name: '检查更新' })).toBeInTheDocument();
-    expect(screen.queryByText('检查更新失败')).not.toBeInTheDocument();
-    expect(screen.queryByText('发现新版本')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '檢查更新' })).toBeInTheDocument();
+    expect(screen.queryByText('檢查更新失敗')).not.toBeInTheDocument();
+    expect(screen.queryByText('發現新版本')).not.toBeInTheDocument();
   });
 
   it('falls back to build identifier when package version is still placeholder', () => {
@@ -485,8 +485,8 @@ describe('SettingsPage', () => {
 
     render(<SettingsPage />);
 
-    expect(await screen.findByRole('heading', { name: '版本信息' })).toBeInTheDocument();
-    expect(screen.getByText(/当前 package\.json 仍为占位版本 0\.0\.0/)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '版本資訊' })).toBeInTheDocument();
+    expect(screen.getByText(/當前 package\.json 仍為佔位版本 0\.0\.0/)).toBeInTheDocument();
     expect(screen.getAllByText('build-20260329-021530Z')).toHaveLength(2);
   });
 
@@ -627,15 +627,15 @@ describe('SettingsPage', () => {
 
     render(<SettingsPage />);
 
-    expect(screen.getByText('通知测试面板:WECHAT_WEBHOOK_URL')).toBeInTheDocument();
+    expect(screen.getByText('通知測試面板:WECHAT_WEBHOOK_URL')).toBeInTheDocument();
     expect(screen.getByText('WECHAT_WEBHOOK_URL')).toBeInTheDocument();
   });
 
   it('does not render desktop env backup card outside desktop runtime', () => {
     render(<SettingsPage />);
 
-    expect(screen.queryByRole('heading', { name: '配置备份' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '导出 .env' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '配置備份' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '匯出 .env' })).not.toBeInTheDocument();
   });
 
   it('renders desktop env backup actions in desktop runtime and exports saved env', async () => {
@@ -645,7 +645,7 @@ describe('SettingsPage', () => {
 
     vi.clearAllMocks();
 
-    fireEvent.click(screen.getByRole('button', { name: '导出 .env' }));
+    fireEvent.click(screen.getByRole('button', { name: '匯出 .env' }));
 
     await waitFor(() => expect(exportDesktopEnv).toHaveBeenCalledTimes(1));
     expect(mockedAnchorClick).toHaveBeenCalledTimes(1);
@@ -660,9 +660,9 @@ describe('SettingsPage', () => {
 
     vi.clearAllMocks();
 
-    fireEvent.click(screen.getByRole('button', { name: '导入 .env' }));
+    fireEvent.click(screen.getByRole('button', { name: '匯入 .env' }));
 
-    expect(await screen.findByText('导入会覆盖当前草稿')).toBeInTheDocument();
+    expect(await screen.findByText('匯入會覆蓋當前草稿')).toBeInTheDocument();
     expect(importDesktopEnv).not.toHaveBeenCalled();
   });
 
@@ -706,9 +706,9 @@ describe('SettingsPage', () => {
 
     await waitFor(() => expect(importDesktopEnv).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(load).toHaveBeenCalledTimes(1));
-    expect(screen.getByText('配置已导入但刷新失败')).toBeInTheDocument();
-    expect(screen.getByText('备份已导入，但重新加载配置失败，请手动重载页面。')).toBeInTheDocument();
-    expect(screen.queryByText('已导入 .env 备份并重新加载配置。')).not.toBeInTheDocument();
+    expect(screen.getByText('配置已匯入但重新整理失敗')).toBeInTheDocument();
+    expect(screen.getByText('備份已匯入，但重新載入配置失敗，請手動過載頁面。')).toBeInTheDocument();
+    expect(screen.queryByText('已匯入 .env 備份並重新載入配置。')).not.toBeInTheDocument();
   });
 
   it('renders desktop update notice when a newer release is available', async () => {
@@ -717,14 +717,14 @@ describe('SettingsPage', () => {
       currentVersion: '3.12.0',
       latestVersion: '3.13.0',
       releaseUrl: 'https://github.com/ZhuLinsen/daily_stock_analysis/releases/tag/v3.13.0',
-      message: '发现新版本 3.13.0，可前往 GitHub Releases 下载更新。',
+      message: '發現新版本 3.13.0，可前往 GitHub Releases 下載更新。',
     });
     (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime();
 
     render(<SettingsPage />);
 
-    expect(await screen.findByText(/发现新版本:当前 3\.12\.0，最新 3\.13\.0/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '前往下载' })).toBeInTheDocument();
+    expect(await screen.findByText(/發現新版本:當前 3\.12\.0，最新 3\.13\.0/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '前往下載' })).toBeInTheDocument();
   });
 
   it('checks desktop updates on demand and renders the latest-version state', async () => {
@@ -732,10 +732,10 @@ describe('SettingsPage', () => {
 
     render(<SettingsPage />);
 
-    fireEvent.click(await screen.findByRole('button', { name: '检查更新' }));
+    fireEvent.click(await screen.findByRole('button', { name: '檢查更新' }));
 
     await waitFor(() => expect(desktopCheckForUpdates).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText('已是最新版本:当前桌面端已是最新版本。')).toBeInTheDocument();
+    expect(await screen.findByText('已是最新版本:當前桌面端已是最新版本。')).toBeInTheDocument();
   });
 
   it('opens GitHub release page from desktop update notice', async () => {
@@ -744,13 +744,13 @@ describe('SettingsPage', () => {
       currentVersion: '3.12.0',
       latestVersion: '3.13.0',
       releaseUrl: 'https://github.com/ZhuLinsen/daily_stock_analysis/releases/tag/v3.13.0',
-      message: '发现新版本 3.13.0，可前往 GitHub Releases 下载更新。',
+      message: '發現新版本 3.13.0，可前往 GitHub Releases 下載更新。',
     });
     (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime();
 
     render(<SettingsPage />);
 
-    fireEvent.click(await screen.findByRole('button', { name: '前往下载' }));
+    fireEvent.click(await screen.findByRole('button', { name: '前往下載' }));
 
     await waitFor(() => {
       expect(desktopOpenReleasePage).toHaveBeenCalledWith(

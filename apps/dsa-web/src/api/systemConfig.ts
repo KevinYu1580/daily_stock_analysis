@@ -30,7 +30,7 @@ export class SystemConfigValidationError extends Error {
     this.name = 'SystemConfigValidationError';
     this.issues = issues;
     this.parsedError = parsedError ?? createParsedApiError({
-      title: '配置校验失败',
+      title: '配置校驗失敗',
       message,
       rawMessage: message,
       status: 400,
@@ -48,7 +48,7 @@ export class SystemConfigConflictError extends Error {
     this.name = 'SystemConfigConflictError';
     this.currentConfigVersion = currentConfigVersion;
     this.parsedError = parsedError ?? createParsedApiError({
-      title: '配置版本冲突',
+      title: '配置版本衝突',
       message,
       rawMessage: message,
       status: 409,
@@ -110,8 +110,8 @@ function toSnakeNotificationTestPayload(payload: TestNotificationChannelRequest)
       value: item.value,
     })),
     mask_token: payload.maskToken ?? '******',
-    title: payload.title ?? 'DSA 通知测试',
-    content: payload.content ?? '这是一条来自 DSA Web 设置页的通知测试消息。',
+    title: payload.title ?? 'DSA 通知測試',
+    content: payload.content ?? '這是一條來自 DSA Web 設定頁的通知測試訊息。',
     timeout_seconds: payload.timeoutSeconds ?? 20,
   };
 }
@@ -208,7 +208,7 @@ export const systemConfigApi = {
         if (status === 400) {
           const validationError = toCamelCase<SystemConfigValidationErrorResponse>(payloadData ?? {});
           throw new SystemConfigValidationError(
-            parsed.message || validationError.message || '配置校验失败',
+            parsed.message || validationError.message || '配置校驗失敗',
             validationError.issues || [],
             parsed,
           );
@@ -217,7 +217,7 @@ export const systemConfigApi = {
         if (status === 409) {
           const conflict = toCamelCase<SystemConfigConflictResponse>(payloadData ?? {});
           throw new SystemConfigConflictError(
-            parsed.message || conflict.message || '配置版本冲突',
+            parsed.message || conflict.message || '配置版本衝突',
             conflict.currentConfigVersion,
             parsed,
           );
