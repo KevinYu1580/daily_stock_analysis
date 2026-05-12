@@ -1,95 +1,62 @@
 # -*- coding: utf-8 -*-
 """
-Tests for src/services/stock_code_utils.py
-Covers: is_code_like, normalize_code - including exchange prefix handling.
+Tests for src/services/stock_code_utils.py（台股 / 美股）。
+Covers: is_code_like, normalize_code.
 """
-
-import pytest
 
 from src.services.stock_code_utils import is_code_like, normalize_code
 
 
 class TestIsCodeLike:
-    # --- Plain digit codes ---
-    def test_plain_6_digit(self):
-        assert is_code_like("600519") is True
+    # --- Taiwan stock / index codes ---
+    def test_tw_4_digit(self):
+        assert is_code_like("2330") is True
 
-    def test_plain_5_digit(self):
-        assert is_code_like("00700") is True
+    def test_tw_4_digit_etf(self):
+        assert is_code_like("0050") is True
 
-    def test_4_digit_rejected(self):
-        assert is_code_like("6001") is False
+    def test_tw_prefix_5_digit_etf(self):
+        assert is_code_like("tw00878") is True
 
-    # --- Suffix format ---
-    def test_suffix_sh(self):
-        assert is_code_like("600519.SH") is True
+    def test_tw_suffix_tw(self):
+        assert is_code_like("2330.TW") is True
 
-    def test_suffix_sz(self):
-        assert is_code_like("000001.SZ") is True
+    def test_tw_suffix_two(self):
+        assert is_code_like("6488.TWO") is True
 
-    def test_suffix_bj(self):
-        assert is_code_like("920493.BJ") is True
-
-    def test_suffix_bj_rejects_non_bse_base(self):
-        assert is_code_like("600519.BJ") is False
-
-    def test_suffix_lowercase(self):
-        assert is_code_like("600519.sh") is True
-
-    # --- HK suffix format ---
-    def test_suffix_hk(self):
-        assert is_code_like("00700.HK") is True
-
-    def test_suffix_hk_lowercase(self):
-        assert is_code_like("00700.hk") is True
-
-    def test_suffix_hk_short_code(self):
-        assert is_code_like("1810.HK") is True
-
-    def test_suffix_hk_rejects_6_digit_base(self):
-        assert is_code_like("600519.HK") is False
-
-    def test_suffix_sh_rejects_5_digit_base(self):
-        assert is_code_like("00700.SH") is False
-
-    # --- Exchange prefix format (Issue #6 fix) ---
-    def test_prefix_sh_upper(self):
-        assert is_code_like("SH600519") is True
-
-    def test_prefix_sh_lower(self):
-        assert is_code_like("sh600519") is True
-
-    def test_prefix_sz(self):
-        assert is_code_like("SZ000001") is True
-
-    def test_prefix_bj(self):
-        assert is_code_like("BJ920493") is True
-
-    def test_prefix_bj_rejects_non_bse_base(self):
-        assert is_code_like("BJ600519") is False
-
-    def test_prefix_hk(self):
-        assert is_code_like("HK00700") is True
-
-    def test_prefix_hk_lower(self):
-        assert is_code_like("hk00700") is True
-
-    def test_prefix_hk_short_code(self):
-        assert is_code_like("HK700") is True
-
-    def test_prefix_hk_rejects_6_digit_base(self):
-        assert is_code_like("HK600519") is False
+    def test_tw_index(self):
+        assert is_code_like("TWII") is True
+        assert is_code_like("TW50") is True
 
     # --- US tickers ---
     def test_us_ticker(self):
         assert is_code_like("AAPL") is True
 
-    def test_us_ticker_with_exchange(self):
-        assert is_code_like("TSLA.O") is True
+    def test_us_ticker_share_class(self):
+        assert is_code_like("BRK.B") is True
+
+    def test_us_ticker_with_exchange_suffix(self):
+        assert is_code_like("TSLA.US") is True
+
+    # --- Rejected: unsupported markets (A-share / HK / BSE) ---
+    def test_a_share_6_digit_rejected(self):
+        assert is_code_like("600519") is False
+
+    def test_hk_5_digit_rejected(self):
+        assert is_code_like("00700") is False
+
+    def test_exchange_prefixed_cn_rejected(self):
+        assert is_code_like("SH600519") is False
+        assert is_code_like("HK00700") is False
+        assert is_code_like("BJ920493") is False
+
+    def test_cn_suffix_rejected(self):
+        assert is_code_like("600519.SH") is False
+        assert is_code_like("00700.HK") is False
 
     # --- Negative cases ---
     def test_plain_text(self):
-        assert is_code_like("贵州茅台") is False
+        assert is_code_like("台積電") is False
 
     def test_empty(self):
         assert is_code_like("") is False
@@ -99,86 +66,57 @@ class TestIsCodeLike:
 
 
 class TestNormalizeCode:
-    # --- Plain digit codes ---
-    def test_plain_6_digit(self):
-        assert normalize_code("600519") == "600519"
+    # --- Taiwan ---
+    def test_tw_4_digit(self):
+        assert normalize_code("2330") == "2330"
 
-    def test_plain_5_digit(self):
-        assert normalize_code("00700") == "00700"
+    def test_tw_4_digit_etf(self):
+        assert normalize_code("0050") == "0050"
+
+    def test_tw_prefix_strips(self):
+        assert normalize_code("tw2330") == "2330"
+        assert normalize_code("TW00878") == "00878"
+
+    def test_tw_suffix_tw_strips(self):
+        assert normalize_code("2330.TW") == "2330"
+
+    def test_tw_suffix_two_strips(self):
+        assert normalize_code("6488.TWO") == "6488"
+
+    def test_tw_index_unchanged(self):
+        assert normalize_code("twii") == "TWII"
+        assert normalize_code("TW50") == "TW50"
 
     def test_whitespace_stripped(self):
-        assert normalize_code("  600519  ") == "600519"
+        assert normalize_code("  2330  ") == "2330"
 
-    # --- Suffix format ---
-    def test_suffix_sh_strips(self):
-        assert normalize_code("600519.SH") == "600519"
-
-    def test_suffix_sz_strips(self):
-        assert normalize_code("000001.SZ") == "000001"
-
-    def test_suffix_bj_strips(self):
-        assert normalize_code("920493.BJ") == "920493"
-
-    def test_suffix_bj_rejects_non_bse_base(self):
-        assert normalize_code("600519.BJ") is None
-
-    def test_suffix_ss_strips(self):
-        assert normalize_code("600000.SS") == "600000"
-
-    def test_suffix_hk_strips(self):
-        assert normalize_code("00700.HK") == "00700"
-
-    def test_suffix_hk_lowercase_strips(self):
-        assert normalize_code("00700.hk") == "00700"
-
-    def test_suffix_hk_short_code_is_zero_padded(self):
-        assert normalize_code("1810.HK") == "01810"
-
-    def test_suffix_hk_rejects_6_digit_base(self):
-        assert normalize_code("600519.HK") is None
-
-    def test_suffix_sh_rejects_5_digit_base(self):
-        assert normalize_code("00700.SH") is None
-
-    # --- Exchange prefix format (Issue #6 fix) ---
-    def test_prefix_sh_upper(self):
-        assert normalize_code("SH600519") == "600519"
-
-    def test_prefix_sh_lower(self):
-        assert normalize_code("sh600519") == "600519"
-
-    def test_prefix_sz(self):
-        assert normalize_code("SZ000001") == "000001"
-
-    def test_prefix_bj(self):
-        assert normalize_code("BJ920493") == "920493"
-
-    def test_prefix_bj_rejects_non_bse_base(self):
-        assert normalize_code("BJ600519") is None
-
-    def test_prefix_hk(self):
-        assert normalize_code("HK00700") == "00700"
-
-    def test_prefix_hk_lower(self):
-        assert normalize_code("hk00700") == "00700"
-
-    def test_prefix_hk_short_code_is_zero_padded(self):
-        assert normalize_code("HK700") == "00700"
-
-    def test_prefix_hk_rejects_6_digit_base(self):
-        assert normalize_code("HK600519") is None
-
-    # --- US tickers ---
+    # --- US ---
     def test_us_ticker(self):
         assert normalize_code("AAPL") == "AAPL"
 
-    # --- Invalid inputs ---
+    def test_us_ticker_uppercased(self):
+        assert normalize_code("aapl") == "AAPL"
+
+    def test_us_ticker_share_class(self):
+        assert normalize_code("BRK.B") == "BRK.B"
+
+    # --- Rejected ---
+    def test_a_share_6_digit_returns_none(self):
+        assert normalize_code("600519") is None
+
+    def test_hk_5_digit_returns_none(self):
+        assert normalize_code("00700") is None
+
+    def test_cn_prefix_returns_none(self):
+        assert normalize_code("SH600519") is None
+        assert normalize_code("BJ920493") is None
+
+    def test_cn_suffix_returns_none(self):
+        assert normalize_code("600519.SH") is None
+        assert normalize_code("00700.HK") is None
+
     def test_empty_returns_none(self):
         assert normalize_code("") is None
 
     def test_plain_text_returns_none(self):
-        assert normalize_code("贵州茅台") is None
-
-    def test_partial_prefix_no_digits_returns_none(self):
-        # SH followed by wrong digit count
-        assert normalize_code("SH6005") is None
+        assert normalize_code("台積電") is None

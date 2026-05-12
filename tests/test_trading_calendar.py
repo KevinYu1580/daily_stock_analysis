@@ -54,9 +54,9 @@ class EffectiveTradingDateTestCase(unittest.TestCase):
         fake_calendar = _FakeCalendar(
             sessions=[date(2026, 3, 26), date(2026, 3, 27)],
             close_hour=15,
-            tz_name="Asia/Shanghai",
+            tz_name="Asia/Taipei",
         )
-        current_time = datetime(2026, 3, 28, 10, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
+        current_time = datetime(2026, 3, 28, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
 
         with patch.object(trading_calendar, "_XCALS_AVAILABLE", True), patch.object(
             trading_calendar,
@@ -64,7 +64,7 @@ class EffectiveTradingDateTestCase(unittest.TestCase):
             SimpleNamespace(get_calendar=lambda _ex: fake_calendar),
             create=True,
         ):
-            result = trading_calendar.get_effective_trading_date("cn", current_time=current_time)
+            result = trading_calendar.get_effective_trading_date("tw", current_time=current_time)
 
         self.assertEqual(result, date(2026, 3, 27))
 
@@ -72,9 +72,9 @@ class EffectiveTradingDateTestCase(unittest.TestCase):
         fake_calendar = _FakeCalendar(
             sessions=[date(2025, 12, 31), date(2026, 1, 5)],
             close_hour=15,
-            tz_name="Asia/Shanghai",
+            tz_name="Asia/Taipei",
         )
-        current_time = datetime(2026, 1, 1, 12, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
+        current_time = datetime(2026, 1, 1, 12, 0, tzinfo=ZoneInfo("Asia/Taipei"))
 
         with patch.object(trading_calendar, "_XCALS_AVAILABLE", True), patch.object(
             trading_calendar,
@@ -82,7 +82,7 @@ class EffectiveTradingDateTestCase(unittest.TestCase):
             SimpleNamespace(get_calendar=lambda _ex: fake_calendar),
             create=True,
         ):
-            result = trading_calendar.get_effective_trading_date("cn", current_time=current_time)
+            result = trading_calendar.get_effective_trading_date("tw", current_time=current_time)
 
         self.assertEqual(result, date(2025, 12, 31))
 
@@ -163,25 +163,17 @@ class EffectiveTradingDateTestCase(unittest.TestCase):
             SimpleNamespace(get_calendar=lambda _ex: (_ for _ in ()).throw(RuntimeError("boom"))),
             create=True,
         ):
-            result = trading_calendar.get_effective_trading_date("hk", current_time=current_time)
+            result = trading_calendar.get_effective_trading_date("tw", current_time=current_time)
 
         self.assertEqual(result, date(2026, 3, 28))
 
 
 class ComputeEffectiveRegionTestCase(unittest.TestCase):
-    """Regression tests for compute_effective_region subset logic."""
+    """Regression tests for compute_effective_region subset logic (TW / US)."""
 
-    def test_both_all_open_returns_comma_joined_three(self):
-        result = trading_calendar.compute_effective_region("both", {"cn", "hk", "us"})
-        self.assertEqual(result, "cn,hk,us")
-
-    def test_both_cn_us_open_returns_comma_joined_two(self):
-        result = trading_calendar.compute_effective_region("both", {"cn", "us"})
-        self.assertEqual(result, "cn,us")
-
-    def test_both_cn_hk_open_returns_comma_joined_two(self):
-        result = trading_calendar.compute_effective_region("both", {"cn", "hk"})
-        self.assertEqual(result, "cn,hk")
+    def test_both_all_open_returns_comma_joined_two(self):
+        result = trading_calendar.compute_effective_region("both", {"tw", "us"})
+        self.assertEqual(result, "tw,us")
 
     def test_both_single_market_open_returns_single(self):
         result = trading_calendar.compute_effective_region("both", {"us"})
@@ -192,14 +184,14 @@ class ComputeEffectiveRegionTestCase(unittest.TestCase):
         self.assertEqual(result, "")
 
     def test_single_region_open(self):
-        self.assertEqual(trading_calendar.compute_effective_region("hk", {"cn", "hk", "us"}), "hk")
+        self.assertEqual(trading_calendar.compute_effective_region("tw", {"tw", "us"}), "tw")
 
     def test_single_region_closed(self):
-        self.assertEqual(trading_calendar.compute_effective_region("hk", {"cn", "us"}), "")
+        self.assertEqual(trading_calendar.compute_effective_region("tw", {"us"}), "")
 
-    def test_invalid_region_defaults_to_cn(self):
-        result = trading_calendar.compute_effective_region("invalid", {"cn"})
-        self.assertEqual(result, "cn")
+    def test_invalid_region_defaults_to_tw(self):
+        result = trading_calendar.compute_effective_region("invalid", {"tw"})
+        self.assertEqual(result, "tw")
 
 
 if __name__ == "__main__":

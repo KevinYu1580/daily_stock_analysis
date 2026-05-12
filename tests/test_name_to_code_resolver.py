@@ -26,32 +26,35 @@ from src.services.name_to_code_resolver import (
 # ---------------------------------------------------------------------------
 
 class TestIsCodeLike:
-    def test_a_share_5_digits(self):
-        assert _is_code_like("60051") is True
-        assert _is_code_like("600519") is True
+    def test_tw_4_digit(self):
+        assert _is_code_like("2330") is True
+        assert _is_code_like("0050") is True
 
-    def test_a_share_6_digits(self):
-        assert _is_code_like("300750") is True
+    def test_tw_prefix_and_suffix(self):
+        assert _is_code_like("tw00878") is True
+        assert _is_code_like("2330.TW") is True
+        assert _is_code_like("6488.TWO") is True
 
-    def test_bse_with_exchange_hint(self):
-        assert _is_code_like("920493.BJ") is True
-        assert _is_code_like("BJ920493") is True
-
-    def test_bj_exchange_hint_rejects_non_bse_code(self):
-        assert _is_code_like("600519.BJ") is False
-        assert _is_code_like("BJ600519") is False
-
-    def test_hk_5_digits(self):
-        assert _is_code_like("00700") is True
+    def test_tw_index(self):
+        assert _is_code_like("TWII") is True
+        assert _is_code_like("TW50") is True
 
     def test_us_stock_letters(self):
         assert _is_code_like("AAPL") is True
         assert _is_code_like("TSLA") is True
         assert _is_code_like("BRK.B") is True
 
+    def test_rejects_unsupported_markets(self):
+        # A-share / HK / BSE are no longer supported
+        assert _is_code_like("600519") is False
+        assert _is_code_like("00700") is False
+        assert _is_code_like("920493.BJ") is False
+        assert _is_code_like("BJ920493") is False
+        assert _is_code_like("SH600519") is False
+
     def test_rejects_non_code(self):
-        assert _is_code_like("贵州茅台") is False
-        assert _is_code_like("1234") is False  # too short
+        assert _is_code_like("台積電") is False
+        assert _is_code_like("123") is False  # too short
         assert _is_code_like("1234567") is False  # too long
         assert _is_code_like("") is False
         assert _is_code_like("   ") is False
@@ -62,30 +65,31 @@ class TestIsCodeLike:
 # ---------------------------------------------------------------------------
 
 class TestNormalizeCode:
-    def test_preserves_valid_a_share(self):
-        assert _normalize_code("600519") == "600519"
-        assert _normalize_code("  600519  ") == "600519"
+    def test_preserves_valid_tw(self):
+        assert _normalize_code("2330") == "2330"
+        assert _normalize_code("  2330  ") == "2330"
 
-    def test_strips_suffix(self):
-        assert _normalize_code("600519.SH") == "600519"
-        assert _normalize_code("000001.SZ") == "000001"
-        assert _normalize_code("920493.BJ") == "920493"
-
-    def test_strips_bse_prefix(self):
-        assert _normalize_code("BJ920493") == "920493"
-
-    def test_bj_exchange_hint_rejects_non_bse_code(self):
-        assert _normalize_code("600519.BJ") is None
-        assert _normalize_code("BJ600519") is None
+    def test_strips_tw_prefix_and_suffix(self):
+        assert _normalize_code("tw2330") == "2330"
+        assert _normalize_code("TW00878") == "00878"
+        assert _normalize_code("2330.TW") == "2330"
+        assert _normalize_code("6488.TWO") == "6488"
 
     def test_preserves_us_stock(self):
         assert _normalize_code("AAPL") == "AAPL"
         assert _normalize_code("brk.b") == "BRK.B"
 
+    def test_returns_none_for_unsupported(self):
+        assert _normalize_code("600519") is None
+        assert _normalize_code("00700") is None
+        assert _normalize_code("920493.BJ") is None
+        assert _normalize_code("BJ920493") is None
+        assert _normalize_code("600519.SH") is None
+
     def test_returns_none_for_invalid(self):
         assert _normalize_code("") is None
-        assert _normalize_code("1234") is None
-        assert _normalize_code("贵州茅台") is None
+        assert _normalize_code("123") is None
+        assert _normalize_code("台積電") is None
 
 
 # ---------------------------------------------------------------------------
@@ -113,9 +117,9 @@ class TestBuildReverseMapNoDuplicates:
 
 class TestResolveNameToCode:
     def test_code_like_input_returned_normalized(self):
-        assert resolve_name_to_code("600519") == "600519"
-        assert resolve_name_to_code("600519.SH") == "600519"
-        assert resolve_name_to_code("920493.BJ") == "920493"
+        assert resolve_name_to_code("2330") == "2330"
+        assert resolve_name_to_code("2330.TW") == "2330"
+        assert resolve_name_to_code("tw00878") == "00878"
         assert resolve_name_to_code("  AAPL  ") == "AAPL"
 
     def test_local_map_exact_match(self):
