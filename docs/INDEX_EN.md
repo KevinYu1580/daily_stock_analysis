@@ -34,7 +34,6 @@ This is the entry point for project documentation. The README covers the project
 | [Provider Configuration Guide](llm-providers.md) <sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub> (Chinese-only) | Provider presets, GitHub Actions mapping, error categories, and diagnostics |
 | [LiteLLM YAML Example](examples/litellm_config.example.yaml) | Example LiteLLM multi-provider configuration |
 | [Notification Baseline](notifications.md) <sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub> (Chinese-only) | WeChat Work, Feishu, Telegram, Discord, Slack, Email, and other notification channels |
-| [Tushare Stock List Guide](TUSHARE_STOCK_LIST_GUIDE.md) <sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub> (Chinese-only) | Tushare stock-list configuration and usage notes |
 
 ## Usage Topics
 
@@ -68,17 +67,17 @@ This is the entry point for project documentation. The README covers the project
 | [Chinese Documentation Index](INDEX.md) | Chinese documentation entry point |
 | [Traditional Chinese README](README_CHT.md) | Traditional Chinese project overview and quick start |
 
-## China-Market Glossary
+## Glossary
 
 | Term | Meaning |
 | --- | --- |
-| **A-shares** | Stocks listed on the Shanghai or Shenzhen stock exchanges, denominated in CNY |
-| **Northbound capital flow** | Net buy/sell flow from foreign investors through Stock Connect programs |
-| **Dragon-Tiger List** | Daily SSE/SZSE disclosure of heavily traded stocks and top trading seats |
+| **Taiwan stocks (TW)** | Stocks listed on the Taiwan Stock Exchange (TWSE) / TPEx, identified by 4-digit codes (e.g. `2330`, `0050`) |
+| **TAIEX** | Taiwan Capitalization Weighted Stock Index, the Taiwan market benchmark |
+| **Three institutional investors** | Foreign investors, investment trusts, and dealers; their net buy/sell flow is a key Taiwan market signal |
+| **Monthly revenue** | Taiwan-listed companies disclose monthly revenue, used as an early fundamental indicator |
+| **yfinance** | Python wrapper around Yahoo Finance, used here for US and Taiwan quotes / K-lines |
+| **FinMind** | Taiwan financial data API (token-gated); provides K-lines, financials, monthly revenue, and institutional-investor flows |
 | **Chip distribution** | Cost-basis distribution of outstanding shares, often used to estimate support and resistance |
-| **Tushare** | Chinese financial data API that requires a token |
-| **AkShare** | Open-source Python market data library |
-| **Baostock** | Free Python SDK for historical A-share data |
 | **WeChat Work** | Tencent enterprise messaging platform with webhook notifications |
 | **Feishu** | ByteDance enterprise collaboration platform with webhook notifications |
 | **PushPlus / ServerChan** | Chinese mobile push notification services |

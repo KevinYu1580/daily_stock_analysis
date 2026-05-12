@@ -4,6 +4,8 @@
 
 **当修改 EXTRACT_PROMPT 时**：请同步更新此文件，并在 PR 描述中展示完整变更（before/after），以便审查者评估针对 code+name+confidence 提取的优化程度。
 
+> ⚠️ 台股/美股重构待办：服务收敛为仅支持台股与美股后，`EXTRACT_PROMPT` 中针对 A 股 / 港股 / A 股 ETF 的代码格式与示例需要在 `src/services/image_stock_extractor.py` 同步调整为台股（4 位数字、含台股 ETF）与美股口径；本文件中的「当前 Prompt」需在该改动落地时一并重新同步。下方内容仍反映改动前的真源。
+
 ---
 
 ## 当前 Prompt（完整）

@@ -6,63 +6,29 @@ This document compiles common issues encountered by users and their solutions.
 
 ## Data Related
 
-### Q1: US stock codes (e.g., AMD, AAPL) show incorrect prices during analysis?
+### Q1: US / Taiwan stock code recognition issues?
 
-**Symptom**: After entering US stock codes, displayed prices are clearly wrong (e.g., AMD showing 7.33 yuan), or being misidentified as A-shares.
+**Symptom**: A US or Taiwan code is misidentified, or its price looks wrong.
 
-**Cause**: Earlier version code matching logic prioritized A-share rules, causing code conflicts.
+**Note**: The system auto-detects by code format: 4-digit number → Taiwan stock; 1-5 letters → US stock.
 
 **Solution**:
-1. Fixed in v2.3.0, system now supports automatic US stock code recognition
-2. If issues persist, set in `.env`:
-   ```bash
-   YFINANCE_PRIORITY=0
-   ```
-   This prioritizes Yahoo Finance data source for US stock data
-
-> Related Issue: [#153](https://github.com/ZhuLinsen/daily_stock_analysis/issues/153)
+1. For Taiwan stocks, configure `FINMIND_TOKEN` for more complete K-lines / financials / monthly revenue / institutional-investor data; when absent, Taiwan stocks automatically fall back to yfinance.
+2. US stock data uses yfinance; adjust priority via `YFINANCE_PRIORITY` if needed.
 
 ---
 
-### Q2: "Volume Ratio" field shows empty or N/A in reports?
+### Q2: Data fetch fails or returns empty?
 
-**Symptom**: Volume ratio data missing in analysis reports, affecting AI's judgment on volume changes.
+**Symptom**: Log shows `Circuit breaker triggered` or data returns `None`.
 
-**Cause**: Some default real-time quote sources (e.g., Sina interface) don't provide volume ratio field.
-
-**Solution**:
-1. Fixed in v2.3.0, Tencent interface now supports volume ratio parsing
-2. Recommended real-time quote source priority:
-   ```bash
-   REALTIME_SOURCE_PRIORITY=tencent,akshare_sina,efinance,akshare_em
-   ```
-3. System has built-in 5-day average volume calculation as fallback
-
-> Related Issue: [#155](https://github.com/ZhuLinsen/daily_stock_analysis/issues/155)
-
----
-
-### Q3: Tushare data fetch failed, showing Token error?
-
-**Symptom**: Log shows `Tushare data fetch failed: Your token is incorrect, please verify`
+**Cause**: Quote APIs (yfinance / FinMind) can be temporarily unstable or rate-limited.
 
 **Solution**:
-1. **No Tushare account**: No need to configure `TUSHARE_TOKEN`, system will automatically use free data sources (AkShare, Efinance)
-2. **Have Tushare account**: Verify Token is correct, check in [Tushare Pro](https://tushare.pro/weborder/#/login?reg=834638) personal center
-3. All core features of this project work normally without Tushare
-
----
-
-### Q4: Data fetch rate-limited or returning empty?
-
-**Symptom**: Log shows `Circuit breaker triggered` or data returns `None`
-
-**Cause**: Free data sources (Eastmoney, Sina, etc.) have anti-scraping mechanisms, high-frequency requests get rate-limited.
-
-**Solution**:
-1. System has built-in multi-source auto-switching and circuit breaker protection
-2. Reduce watchlist size, or increase request intervals
-3. Avoid frequently manually triggering analysis
+1. The system has built-in retry and circuit-breaker protection.
+2. Reduce watchlist size, or increase request intervals; avoid frequently triggering analysis manually.
+3. For Taiwan stocks, configure `FINMIND_TOKEN` to add a data source alongside yfinance.
+4. Set `MAX_WORKERS=1` for serial fetching to lower concurrency pressure.
 
 ---
 

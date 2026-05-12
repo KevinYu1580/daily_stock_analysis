@@ -130,7 +130,7 @@ FEISHU_APP_SECRET=...
     "header": {
       "title": {
         "tag": "plain_text",
-        "content": "A股智能分析报告"
+        "content": "台股美股智能分析报告"
       }
     }
   }

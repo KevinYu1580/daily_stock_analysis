@@ -1,6 +1,6 @@
 # Complete Configuration & Deployment Guide
 
-This document contains the complete configuration guide for the AI Stock Analysis System, intended for users who need advanced features or special deployment methods.
+This document contains the complete configuration guide for the Taiwan / US Stock Analysis System, intended for users who need advanced features or special deployment methods.
 
 > Quick start guide available in [README_EN.md](README_EN.md). This document covers advanced configuration.
 
@@ -132,7 +132,7 @@ Go to your forked repo → `Settings` → `Secrets and variables` → `Actions` 
 
 | Secret Name | Description | Required |
 |------------|------|:----:|
-| `STOCK_LIST` | Watchlist codes, e.g., `600519,300750,002594` | ✅ |
+| `STOCK_LIST` | Watchlist codes, e.g., `2330,2454,AAPL,TSLA` | ✅ |
 | `ANSPIRE_API_KEYS` | [Anspire AI Search](https://aisearch.anspire.cn/) optimized for Chinese content; the same key can also be used for Anspire LLM fallback scenarios (example model: `Doubao-Seed-2.0-lite`) | Recommended |
 | `SERPAPI_API_KEYS` | [SerpAPI](https://serpapi.com/baidu-search-api?utm_source=github_daily_stock_analysis) search-engine results for realtime financial news | Recommended |
 | `TAVILY_API_KEYS` | [Tavily](https://tavily.com/) Search API (for news search) | Optional |
@@ -141,8 +141,10 @@ Go to your forked repo → `Settings` → `Secrets and variables` → `Actions` 
 | `MINIMAX_API_KEYS` | [MiniMax](https://platform.minimax.io/) Coding Plan Web Search (structured search results) | Optional |
 | `SEARXNG_BASE_URLS` | SearXNG self-hosted instances (quota-free fallback, enable format: json in settings.yml); when empty the app auto-discovers public instances | Optional |
 | `SEARXNG_PUBLIC_INSTANCES_ENABLED` | Auto-discover public SearXNG instances from `searx.space` when `SEARXNG_BASE_URLS` is empty (default `true`) | Optional |
-| `TUSHARE_TOKEN` | [Tushare Pro](https://tushare.pro/weborder/#/login?reg=834638) Token | Optional |
-| `TICKFLOW_API_KEY` | [TickFlow](https://tickflow.org) API key for CN market review index enhancement; market breadth also uses TickFlow when the plan supports universe queries | Optional |
+| `FINMIND_TOKEN` | [FinMind](https://finmindtrade.com/) Token (Taiwan K-lines / financials / monthly revenue / institutional investors); when absent TW falls back to yfinance | Optional |
+| `FINMIND_CACHE_PATH` | FinMind local sqlite cache path (default `~/.cache/dsa/finmind_cache.sqlite`) | Optional |
+| `FINMIND_PRIORITY` | FinMind data-source priority (default `0`, effective when `FINMIND_TOKEN` is set) | Optional |
+| `YFINANCE_PRIORITY` | YFinance data-source priority (lower number = tried first) | Optional |
 
 #### ✅ Minimum Configuration Example
 
@@ -268,7 +270,7 @@ For the P0 notification baseline and diagnostics, see [Notification Baseline](no
 
 | Variable | Description | Required |
 |--------|------|:----:|
-| `ANSPIRE_API_KEYS` | Anspire Open API Key (shared with search and LLM fallback examples; availability depends on account/model entitlement, and can effectively enhance A-share analysis) | Recommended |
+| `ANSPIRE_API_KEYS` | Anspire Open API Key (shared with search and LLM fallback examples; availability depends on account/model entitlement, and can effectively enhance Taiwan-stock analysis) | Recommended |
 | `SERPAPI_API_KEYS` | SerpAPI search-engine results for realtime financial news | Recommended |
 | `TAVILY_API_KEYS` | Tavily Search API Key | Optional |
 | `BOCHA_API_KEYS` | Bocha Search API Key (Chinese optimized) | Optional |
@@ -283,15 +285,17 @@ For the P0 notification baseline and diagnostics, see [Notification Baseline](no
 
 ### Data Source Configuration
 
+> Only two data sources remain: **yfinance** (US + Taiwan, default primary source) and **FinMind** (Taiwan K-lines / financials / monthly revenue / institutional investors, requires `FINMIND_TOKEN`). When FinMind is absent, Taiwan stocks fall back to yfinance.
+
 | Variable | Description | Default | Required |
 |--------|------|--------|:----:|
-| `TUSHARE_TOKEN` | Tushare Pro Token | - | Optional |
-| `TICKFLOW_API_KEY` | TickFlow API key; CN market review indices prefer TickFlow when configured, and market breadth does so only when the plan supports universe queries | - | Optional |
+| `FINMIND_TOKEN` | [FinMind](https://finmindtrade.com/) Token (Taiwan K-lines / financials / monthly revenue / institutional investors) | - | Optional |
+| `FINMIND_CACHE_PATH` | FinMind local sqlite cache path | `~/.cache/dsa/finmind_cache.sqlite` | Optional |
+| `FINMIND_PRIORITY` | FinMind data-source priority (effective when `FINMIND_TOKEN` is set) | `0` | Optional |
+| `YFINANCE_PRIORITY` | YFinance data-source priority (lower number = tried first) | - | Optional |
 | `ENABLE_REALTIME_QUOTE` | Enable real-time quotes (if disabled, uses historical closing prices for analysis) | `true` | Optional |
 | `ENABLE_REALTIME_TECHNICAL_INDICATORS` | Intraday real-time technicals: Calculate MA5/MA10/MA20 and bull trends using real-time prices when enabled (Issue #234); uses yesterday's close if disabled. | `true` | Optional |
 | `ENABLE_CHIP_DISTRIBUTION` | Enable chip distribution analysis (this API is unstable, recommended to disable for cloud deployment). GitHub Actions users must set `ENABLE_CHIP_DISTRIBUTION=true` in Repository Variables to enable; disabled by default in workflows. | `true` | Optional |
-| `ENABLE_EASTMONEY_PATCH` | Eastmoney API patch: Recommended to set to `true` when Eastmoney APIs fail frequently (e.g., RemoteDisconnected, connection closed). Injects NID tokens and random User-Agents to reduce rate limiting probability. | `false` | Optional |
-| `REALTIME_SOURCE_PRIORITY` | Real-time quote source priority (comma-separated), e.g., `tencent,akshare_sina,efinance,akshare_em` | See .env.example | Optional |
 | `ENABLE_FUNDAMENTAL_PIPELINE` | Master switch for fundamental aggregation; when disabled, returns `not_supported` block only, without altering the original analysis pipeline. | `true` | Optional |
 | `FUNDAMENTAL_STAGE_TIMEOUT_SECONDS` | Total latency budget for the fundamental stage (seconds) | `1.5` | Optional |
 | `FUNDAMENTAL_FETCH_TIMEOUT_SECONDS` | Timeout for a single capability source call (seconds) | `0.8` | Optional |
@@ -300,12 +304,12 @@ For the P0 notification baseline and diagnostics, see [Notification Baseline](no
 | `FUNDAMENTAL_CACHE_MAX_ENTRIES` | Maximum entries for fundamental cache (evicted by time within TTL) | `256` | Optional |
 
 > **Behavior Notes:**
-> - **A-shares**: Returns aggregated capabilities by `valuation/growth/earnings/institution/capital_flow/dragon_tiger/boards`.
+> - **Taiwan stocks**: Returns aggregated capabilities by what is available (valuation, growth, financials, monthly revenue, institutional investors, etc.); missing capabilities are marked `not_supported`.
+> - **US stocks**: Returns available items (e.g. valuation/growth fields from yfinance); the rest is marked `not_supported`.
 > - **ETFs**: Returns available items, marks missing capabilities as `not_supported`, and does not affect the original flow overall.
-> - **US/HK stocks**: Returns `not_supported` fallback block.
-> - Any exception uses fail-open logic, only logs errors without affecting the main technical/news/chip pipeline.
+> - Any exception uses fail-open logic, only logs errors without affecting the main technical/news pipeline.
 > - **Field contracts**:
->   - `fundamental_context.belong_boards` = related board list for the stock (currently populated for A-shares only; `[]` when unavailable);
+>   - `fundamental_context.belong_boards` = related board list for the stock (`[]` when unavailable);
 >   - `fundamental_context.boards.data` = `sector_rankings` (sector rise/fall leaderboard, structure `{top, bottom}`);
 >   - `get_stock_info.belong_boards` = list of sectors the individual stock belongs to;
 >   - `get_stock_info.boards` is a compatibility alias, value is identical to `belong_boards` (removal considered only in major version updates);
@@ -324,7 +328,7 @@ For the P0 notification baseline and diagnostics, see [Notification Baseline](no
 | `STOCK_LIST` | Watchlist codes (comma-separated) | - |
 | `MAX_WORKERS` | Concurrent threads | `3` |
 | `MARKET_REVIEW_ENABLED` | Enable market review | `true` |
-| `MARKET_REVIEW_REGION` | Market review region: cn (A-shares), hk (HK stocks), us (US stocks), both (all three markets) | `cn` |
+| `MARKET_REVIEW_REGION` | Market review region: tw (Taiwan), us (US), both (Taiwan + US) | `tw` |
 | `SCHEDULE_ENABLED` | Enable scheduled tasks | `false` |
 | `SCHEDULE_TIME` | Scheduled execution time | `18:00` |
 | `SCHEDULE_RUN_IMMEDIATELY` | Run once immediately when scheduler mode starts; when unset it keeps following the legacy `RUN_IMMEDIATELY` runtime override | `true` |
@@ -332,13 +336,9 @@ For the P0 notification baseline and diagnostics, see [Notification Baseline](no
 | `LOG_DIR` | Log directory | `./logs` |
 
 > Behavior notes:
-> - When `TICKFLOW_API_KEY` is configured, CN market review first tries TickFlow for main indices. Market breadth also tries TickFlow only when the current TickFlow plan supports universe queries.
-> - TickFlow behavior is capability-based rather than just key-based: limited plans can still enhance main CN indices, while plans with `CN_Equity_A` universe query support also enhance market breadth.
-> - The official quickstart documents `quotes.get(universes=["CN_Equity_A"])`, but online smoke tests confirmed two additional real-world constraints: universe access depends on plan permissions, and `quotes.get(symbols=[...])` has a per-request symbol limit.
-> - TickFlow currently returns `change_pct` / `amplitude` as ratio values; this integration normalizes them to the project's percent convention so they match AkShare / Tushare / efinance semantics.
 > - In scheduler mode, if runtime env explicitly sets `RUN_IMMEDIATELY` but does not set `SCHEDULE_RUN_IMMEDIATELY`, the scheduler keeps inheriting the legacy runtime override instead of being pulled back to a persisted `.env` alias value.
-> - CN market review reports now use a post-market workstation layout with fixed market light, market temperature, index detail, sector Top tables, news catalysts, next-session plan, and risk sections. Missing data sources degrade by omitting or simplifying only the affected block.
-> - Per-stock analysis, realtime quote priority, and sector rankings fallback remain unchanged.
+> - Market review reports use a post-market workstation layout with fixed market light, market temperature, index detail, news catalysts, next-session plan, and risk sections. Missing data sources degrade by omitting or simplifying only the affected block.
+> - Per-stock analysis and realtime quote behavior remain unchanged.
 
 ---
 
@@ -530,7 +530,7 @@ pip install -r requirements.txt
 python main.py                        # Full analysis (stocks + market review)
 python main.py --market-review        # Market review only
 python main.py --no-market-review     # Stock analysis only
-python main.py --stocks 600519,300750 # Specify stocks
+python main.py --stocks 2330,AAPL     # Specify stocks
 python main.py --dry-run              # Fetch data only, no AI analysis
 python main.py --no-notify            # Don't send notifications
 python main.py --schedule             # Scheduled task mode
@@ -647,10 +647,10 @@ Configure `STOCK_GROUP_N` and `EMAIL_GROUP_N` to route different stock groups to
 > GitHub Actions limitation: as of 2026-03-29, the repository's default `daily_analysis.yml` does not auto-import arbitrary numbered `STOCK_GROUP_N` / `EMAIL_GROUP_N` variables. If you only add them in repository Secrets / Variables without extending the workflow `env:` block, they will not reach the runtime process.
 
 ```bash
-STOCK_LIST=600519,300750,002594,AAPL
-STOCK_GROUP_1=600519,300750
+STOCK_LIST=2330,2454,AAPL,TSLA
+STOCK_GROUP_1=2330,2454
 EMAIL_GROUP_1=user1@example.com
-STOCK_GROUP_2=002594,AAPL
+STOCK_GROUP_2=AAPL,TSLA
 EMAIL_GROUP_2=user2@example.com
 ```
 
@@ -778,46 +778,33 @@ Features:
 
 ## Data Source Configuration
 
-System defaults to AkShare (free), also supports other data sources:
+Only two data sources remain:
 
-### AkShare (Default)
+### YFinance (Default)
 - Free, no configuration needed
-- Data source: Eastmoney scraper
+- Covers quotes, K-lines, and technicals for US and Taiwan stocks
+- Primary source for US stocks; also the fallback for Taiwan stocks when FinMind data is missing
 
-### Tushare Pro
-- Requires registration to get Token
-- More stable, more comprehensive data
-- Set `TUSHARE_TOKEN`
-
-### Baostock
-- Free, no configuration needed
-- Used as backup data source
-
-### YFinance
-- Free, no configuration needed
-- Supports US/HK stock data
-- US stock historical and real-time data both use YFinance exclusively to avoid technical indicator errors from akshare's US stock adjustment issues
-
-### Longbridge
-- Optional fallback for US/HK stocks, mainly used to supplement fields that YFinance may miss
-- Configure `LONGBRIDGE_APP_KEY`, `LONGBRIDGE_APP_SECRET`, and `LONGBRIDGE_ACCESS_TOKEN`
-- Optional knobs: `LONGBRIDGE_STATIC_INFO_TTL_SECONDS` (default `86400`) and `LONGBRIDGE_CONNECTION_COOLDOWN_SECONDS` (default `15`)
-- If credentials are absent, the optional Longbridge fetcher is not instantiated
-- When runtime errors such as `client is closed`, `context closed`, or `connection closed` occur, Longbridge enters a short cooldown window and US/HK daily or realtime requests automatically fall back to YFinance / AkShare instead of reconnecting on every request
+### FinMind (Taiwan enhancement)
+- Register at [finmindtrade.com](https://finmindtrade.com/) to get a Token
+- Covers Taiwan K-lines, financials, monthly revenue, and institutional-investor flows
+- Set `FINMIND_TOKEN` to enable; when absent, Taiwan stocks fall back to YFinance
+- Optional `FINMIND_CACHE_PATH` for the local sqlite cache path (default `~/.cache/dsa/finmind_cache.sqlite`)
+- Optional `FINMIND_PRIORITY` to adjust priority (default `0`)
 
 ---
 
 ## Advanced Features
 
-### Hong Kong Stock Support
+### Taiwan Stock Support
 
-Use `hk` prefix for HK stock codes:
+Use 4-digit Taiwan codes directly (auto-detected as Taiwan stocks):
 
 ```bash
-STOCK_LIST=600519,hk00700,hk01810
+STOCK_LIST=2330,2454,0050
 ```
 
-HK daily history skips efinance, pytdx, baostock, and other built-in providers that do not support HK daily data, avoiding mismatches between HK symbols and non-HK market data. AkShare/Tushare/YFinance/Longbridge continue to provide HK fallback paths. If Longbridge is inside its connection cooldown window, the route temporarily skips it and continues with the remaining HK-capable fallbacks.
+Taiwan stocks prefer FinMind (requires `FINMIND_TOKEN`) for K-lines / financials / monthly revenue / institutional-investor flows; when FinMind data is missing, they fall back to YFinance.
 
 ### Multi-Model Switching
 
@@ -1008,10 +995,10 @@ FastAPI provides RESTful API service for configuration management and triggering
 # Health check
 curl http://127.0.0.1:8000/api/health
 
-# Trigger analysis (A-shares)
+# Trigger analysis (Taiwan stock)
 curl -X POST http://127.0.0.1:8000/api/v1/analysis/analyze \
   -H 'Content-Type: application/json' \
-  -d '{"stock_code": "600519"}'
+  -d '{"stock_code": "2330"}'
 
 # Query task status
 curl http://127.0.0.1:8000/api/v1/analysis/status/<task_id>
@@ -1027,13 +1014,13 @@ curl -X POST http://127.0.0.1:8000/api/v1/backtest/run \
 # Trigger backtest (specific stock)
 curl -X POST http://127.0.0.1:8000/api/v1/backtest/run \
   -H 'Content-Type: application/json' \
-  -d '{"code": "600519", "force": false}'
+  -d '{"code": "2330", "force": false}'
 
 # Query overall backtest performance
 curl http://127.0.0.1:8000/api/v1/backtest/performance
 
 # Query per-stock backtest performance
-curl http://127.0.0.1:8000/api/v1/backtest/performance/600519
+curl http://127.0.0.1:8000/api/v1/backtest/performance/2330
 
 # Paginated backtest results
 curl "http://127.0.0.1:8000/api/v1/backtest/results?page=1&limit=20"
@@ -1051,9 +1038,9 @@ python main.py --serve-only --host 0.0.0.0 --port 8888
 
 | Type | Format | Examples |
 |------|------|------|
-| A-shares | 6-digit number | `600519`, `000001`, `300750` |
-| BSE (Beijing) | 8/4/92 prefix, 6-digit; supports `BJ` prefix or `.BJ` suffix | `920748`, `BJ920493`, `920493.BJ` |
-| HK stocks | hk + 5-digit number | `hk00700`, `hk09988` |
+| Taiwan stocks | 4-digit number (including Taiwan ETFs) | `2330`, `2454`, `0050` |
+| US stocks | 1-5 letters (optional .X suffix) | `AAPL`, `TSLA`, `BRK.B` |
+| US indices | SPX/DJI/IXIC etc. | `SPX`, `DJI`, `NASDAQ`, `VIX` |
 
 ### Notes
 
@@ -1069,7 +1056,7 @@ python main.py --serve-only --host 0.0.0.0 --port 8888
 A: WeChat Work/Feishu have message length limits, system already auto-segments messages. For complete content, configure Feishu Cloud Document feature.
 
 ### Q: Data fetch failed?
-A: AkShare uses scraping mechanism, may be temporarily rate-limited. System has retry mechanism configured, usually just wait a few minutes and retry.
+A: Quote APIs can be temporarily unstable. The system has a retry mechanism configured, so usually just wait a few minutes and retry; for Taiwan stocks, configuring `FINMIND_TOKEN` adds a supplementary data source alongside yfinance.
 
 ### Q: How to add watchlist stocks?
 A: Modify `STOCK_LIST` environment variable, separate multiple codes with commas.
@@ -1115,7 +1102,7 @@ Example:
 ```env
 AGENT_EVENT_MONITOR_ENABLED=true
 AGENT_EVENT_MONITOR_INTERVAL_MINUTES=5
-AGENT_EVENT_ALERT_RULES_JSON=[{"stock_code":"600519","alert_type":"price_cross","direction":"above","price":1800},{"stock_code":"300750","alert_type":"price_change_percent","direction":"down","change_pct":3.0},{"stock_code":"000858","alert_type":"volume_spike","multiplier":2.5}]
+AGENT_EVENT_ALERT_RULES_JSON=[{"stock_code":"2330","alert_type":"price_cross","direction":"above","price":1100},{"stock_code":"AAPL","alert_type":"price_change_percent","direction":"down","change_pct":3.0},{"stock_code":"TSLA","alert_type":"volume_spike","multiplier":2.5}]
 ```
 
 ---

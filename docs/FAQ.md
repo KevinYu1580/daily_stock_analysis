@@ -6,65 +6,29 @@
 
 ## 📊 数据相关
 
-### Q1: 美股代码（如 AMD, AAPL）分析时价格显示不正确？
+### Q1: 美股 / 台股代码识别问题？
 
-**现象**：输入美股代码后，显示的价格明显不对（如 AMD 显示 7.33 元），或被误识别为 A 股。
+**现象**：输入美股或台股代码后被误识别，或价格不正确。
 
-**原因**：早期版本代码匹配逻辑优先尝试国内 A 股规则，导致代码冲突。
+**说明**：系统会按代码格式自动识别：4 位数字 → 台股；1-5 字母 → 美股。
 
 **解决方案**：
-1. 已在 v2.3.0 修复，系统现在支持美股代码自动识别
-2. 如仍有问题，可在 `.env` 中设置：
-   ```bash
-   YFINANCE_PRIORITY=0
-   ```
-   这将优先使用 Yahoo Finance 数据源获取美股数据
-
-> 📌 相关 Issue: [#153](https://github.com/ZhuLinsen/daily_stock_analysis/issues/153)
+1. 台股建议配置 `FINMIND_TOKEN` 以获取更完整的 K 线/财报/月营收/三大法人数据；缺值时台股会自动 fallback 到 yfinance
+2. 美股数据统一使用 yfinance，可通过 `YFINANCE_PRIORITY` 调整优先级
 
 ---
 
-### Q2: 报告中"量比"字段显示为空或 N/A？
+### Q2: 数据获取失败或返回为空？
 
-**现象**：分析报告中量比数据缺失，影响 AI 对缩放量的判断。
+**现象**：日志显示 `熔断器触发` 或数据返回 `None`。
 
-**原因**：默认的某些实时行情源（如新浪接口）不提供量比字段。
-
-**解决方案**：
-1. 已在 v2.3.0 修复，腾讯接口现已支持量比解析
-2. 推荐配置实时行情源优先级：
-   ```bash
-   REALTIME_SOURCE_PRIORITY=tencent,akshare_sina,efinance,akshare_em
-   ```
-3. 系统已内置 5 日均量计算作为兜底逻辑
-
-> 📌 相关 Issue: [#155](https://github.com/ZhuLinsen/daily_stock_analysis/issues/155)
-
----
-
-### Q3: Tushare 获取数据失败，提示 Token 不对？
-
-**现象**：日志显示 `Tushare 获取数据失败: 您的token不对，请确认`
+**原因**：行情接口（yfinance / FinMind）可能临时不稳定或限流。
 
 **解决方案**：
-1. **无 Tushare 账号**：无需配置 `TUSHARE_TOKEN`，系统会自动使用免费数据源（AkShare、Efinance）
-2. **有 Tushare 账号**：确认 Token 是否正确，可在 [Tushare Pro](https://tushare.pro/weborder/#/login?reg=834638 ) 个人中心查看
-3. 本项目所有核心功能均可在无 Tushare 的情况下正常运行
-
----
-
-### Q4: 数据获取被限流或返回为空？
-
-**现象**：日志显示 `熔断器触发` 或数据返回 `None`，或出现 `RemoteDisconnected`、`push2his.eastmoney.com` 连接被关闭等
-
-**原因**：免费数据源（东方财富、新浪等）有反爬机制，短时间大量请求会被限流。
-
-**解决方案**：
-1. 系统已内置多数据源自动切换和熔断保护
-2. 减少自选股数量，或增加请求间隔
-3. 避免频繁手动触发分析
-4. 若东财接口频繁失败，可设置 `ENABLE_EASTMONEY_PATCH=true` 启用东财补丁（注入 NID 令牌与随机 User-Agent，降低被限流概率）
-5. 将 `MAX_WORKERS=1` 改为串行获取，减少对东财的并发压力
+1. 系统已内置重试与熔断保护
+2. 减少自选股数量，或增加请求间隔，避免频繁手动触发分析
+3. 台股建议配置 `FINMIND_TOKEN`，在 yfinance 之外多一个数据源
+4. 将 `MAX_WORKERS=1` 改为串行获取，降低并发压力
 
 ---
 
@@ -298,7 +262,7 @@ OPENAI_MODEL=deepseek-v4-flash
 
 ---
 
-### Q14.1: Docker 中网络/DNS 解析失败（如 api.tushare.pro、searchapi.eastmoney.com 无法解析）？
+### Q14.1: Docker 中网络/DNS 解析失败（如 yfinance、api.finmindtrade.com、搜索引擎 API 无法解析）？
 
 **现象**：日志显示 `Temporary failure in name resolution` 或 `NameResolutionError`，股票数据 API 和大模型 API 均无法访问。
 

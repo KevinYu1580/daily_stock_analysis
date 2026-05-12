@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This document explains how to deploy the AI Stock Analysis System to a server.
+This document explains how to deploy the Taiwan / US Stock Analysis System to a server.
 
 ## Deployment Options Comparison
 
@@ -147,7 +147,7 @@ sudo vim /etc/systemd/system/stock-analyzer.service
 Contents:
 ```ini
 [Unit]
-Description=AI Stock Analysis System
+Description=Taiwan / US Stock Analysis System
 After=network.target
 
 [Service]
@@ -372,13 +372,13 @@ Add these Secrets:
 | `EMAIL_PASSWORD` | Email authorization code | Optional* |
 | `SERVERCHAN3_SENDKEY` | ServerChan v3 Sendkey | Optional* |
 | `CUSTOM_WEBHOOK_URLS` | Custom Webhook (comma-separated for multiple) | Optional* |
-| `STOCK_LIST` | Watchlist, e.g., `600519,300750` | ✅ |
+| `STOCK_LIST` | Watchlist, e.g., `2330,AAPL` | ✅ |
 | `SERPAPI_API_KEYS` | SerpAPI Key | Recommended |
 | `TAVILY_API_KEYS` | Tavily Search API Key | Optional |
 | `BOCHA_API_KEYS` | Bocha Search API Key | Optional |
 | `BRAVE_API_KEYS` | Brave Search API Key | Optional |
 | `MINIMAX_API_KEYS` | MiniMax Coding Plan Web Search | Optional |
-| `TUSHARE_TOKEN` | Tushare Token | Optional |
+| `FINMIND_TOKEN` | FinMind Token (Taiwan K-lines / financials / monthly revenue / institutional investors) | Optional |
 | `GEMINI_MODEL` | Model name (default gemini-2.0-flash) | Optional |
 
 > *Note: Configure at least one notification channel, multiple channels supported for simultaneous push

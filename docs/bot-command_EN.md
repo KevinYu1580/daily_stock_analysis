@@ -152,15 +152,15 @@ class BotCommand(ABC):
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `/analyze` | Analyze a specific stock | `/analyze AAPL` or `/analyze 600519` |
+| `/analyze` | Analyze a specific stock | `/analyze AAPL` or `/analyze 2330` |
 | `/ask` | Single-turn question about a stock or the market | `/ask what is RSI for AAPL` |
 | `/batch` | Batch-analyze your configured watchlist | `/batch` |
 | `/chat` | Multi-turn strategy chat (maintains conversation context) | `/chat` |
-| `/market` | Market review (A-shares / US stocks) | `/market` |
+| `/market` | Market review (Taiwan / US stocks) | `/market` |
 | `/help` | Show help text | `/help` |
 | `/status` | Show system status | `/status` |
 
-> **Stock code formats:** A-shares use 6-digit codes (e.g. `600519`); HK stocks prefix `hk` (e.g. `hk00700`); US stocks use ticker symbols (e.g. `AAPL`, `TSLA`).
+> **Stock code formats:** Taiwan stocks use 4-digit codes (e.g. `2330`, `0050`); US stocks use ticker symbols (e.g. `AAPL`, `TSLA`).
 
 ---
 
