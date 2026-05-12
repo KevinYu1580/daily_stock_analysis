@@ -21,43 +21,43 @@ globalThis.fetch = mockFetch as unknown as typeof fetch;
 describe('stockIndexLoader', () => {
   const mockIndexData: StockIndexItem[] = [
     {
-      canonicalCode: '600519.SH',
-      displayCode: '600519',
-      nameZh: '貴州茅臺',
-      pinyinFull: 'guizhoumaotai',
-      pinyinAbbr: 'gzmt',
-      aliases: ['茅臺'],
-      market: 'CN',
+      canonicalCode: '2330.TW',
+      displayCode: '2330',
+      nameZh: '台積電',
+      pinyinFull: 'taijidian',
+      pinyinAbbr: 'tjd',
+      aliases: ['台積電'],
+      market: 'TW',
       assetType: 'stock',
       active: true,
       popularity: 100,
     },
     {
-      canonicalCode: '000001.SZ',
-      displayCode: '000001',
-      nameZh: '平安銀行',
-      pinyinFull: 'pinganyinxing',
-      pinyinAbbr: 'payh',
-      aliases: ['平銀'],
-      market: 'CN',
+      canonicalCode: '2454.TW',
+      displayCode: '2454',
+      nameZh: '聯發科',
+      pinyinFull: 'lianfake',
+      pinyinAbbr: 'lfk',
+      aliases: ['聯發科'],
+      market: 'TW',
       assetType: 'stock',
       active: true,
       popularity: 90,
     },
     {
-      canonicalCode: '00700.HK',
-      displayCode: '00700',
-      nameZh: '騰訊控股',
-      pinyinFull: 'tengxunkonggu',
-      pinyinAbbr: 'txkg',
-      aliases: ['騰訊'],
-      market: 'HK',
+      canonicalCode: 'NVDA',
+      displayCode: 'NVDA',
+      nameZh: '輝達',
+      pinyinFull: 'huida',
+      pinyinAbbr: 'hd',
+      aliases: ['輝達'],
+      market: 'US',
       assetType: 'stock',
       active: true,
       popularity: 95,
     },
     {
-      canonicalCode: 'AAPL.US',
+      canonicalCode: 'AAPL',
       displayCode: 'AAPL',
       nameZh: '蘋果',
       pinyinFull: 'pingguo',
@@ -69,13 +69,13 @@ describe('stockIndexLoader', () => {
       popularity: 98,
     },
     {
-      canonicalCode: '600000.SH',
-      displayCode: '600000',
-      nameZh: '浦發銀行',
-      pinyinFull: 'pufayinxing',
-      pinyinAbbr: 'pfyh',
-      aliases: ['浦發'],
-      market: 'CN',
+      canonicalCode: '2317.TW',
+      displayCode: '2317',
+      nameZh: '鴻海',
+      pinyinFull: 'honghai',
+      pinyinAbbr: 'hh',
+      aliases: ['鴻海'],
+      market: 'TW',
       assetType: 'stock',
       active: false,
       popularity: 80,
@@ -103,8 +103,8 @@ describe('stockIndexLoader', () => {
 
     test('successfully loads compressed format index (tuple format)', async () => {
       const compressedData = [
-        ['600519.SH', '600519', '貴州茅臺', 'guizhoumaotai', 'gzmt', ['茅臺'], 'CN', 'stock', true, 100],
-        ['000001.SZ', '000001', '平安銀行', 'pinganyinxing', 'payh', ['平銀'], 'CN', 'stock', true, 90],
+        ['2330.TW', '2330', '台積電', 'taijidian', 'tjd', ['台積電'], 'TW', 'stock', true, 100],
+        ['2454.TW', '2454', '聯發科', 'lianfake', 'lfk', ['聯發科'], 'TW', 'stock', true, 90],
       ];
 
       mockFetch.mockResolvedValueOnce({
@@ -117,8 +117,8 @@ describe('stockIndexLoader', () => {
       expect(result.loaded).toBe(true);
       expect(result.fallback).toBe(false);
       expect(result.data).toHaveLength(2);
-      expect(result.data[0].canonicalCode).toBe('600519.SH');
-      expect(result.data[0].nameZh).toBe('貴州茅臺');
+      expect(result.data[0].canonicalCode).toBe('2330.TW');
+      expect(result.data[0].nameZh).toBe('台積電');
     });
 
     test('returns fallback mode on network error', async () => {
@@ -195,13 +195,13 @@ describe('stockIndexLoader', () => {
 
       expect(compressed).toHaveLength(mockIndexData.length);
       expect(compressed[0]).toEqual([
-        '600519.SH',
-        '600519',
-        '貴州茅臺',
-        'guizhoumaotai',
-        'gzmt',
-        ['茅臺'],
-        'CN',
+        '2330.TW',
+        '2330',
+        '台積電',
+        'taijidian',
+        'tjd',
+        ['台積電'],
+        'TW',
         'stock',
         true,
         100,
@@ -258,10 +258,10 @@ describe('stockIndexLoader', () => {
 
   describe('findStockInIndex - Find stock', () => {
     test('finds existing stock', () => {
-      const result = findStockInIndex('600519.SH', mockIndexData);
+      const result = findStockInIndex('2330.TW', mockIndexData);
       expect(result).not.toBeNull();
-      expect(result?.canonicalCode).toBe('600519.SH');
-      expect(result?.nameZh).toBe('貴州茅臺');
+      expect(result?.canonicalCode).toBe('2330.TW');
+      expect(result?.nameZh).toBe('台積電');
     });
 
     test('returns null for non-existent stock', () => {
@@ -270,18 +270,18 @@ describe('stockIndexLoader', () => {
     });
 
     test('finds inactive stock', () => {
-      const result = findStockInIndex('600000.SH', mockIndexData);
+      const result = findStockInIndex('2317.TW', mockIndexData);
       expect(result).not.toBeNull();
       expect(result?.active).toBe(false);
     });
 
     test('handles empty index', () => {
-      const result = findStockInIndex('600519.SH', []);
+      const result = findStockInIndex('2330.TW', []);
       expect(result).toBeNull();
     });
 
     test('case-sensitive search', () => {
-      const result = findStockInIndex('600519.sh', mockIndexData);
+      const result = findStockInIndex('2330.tw', mockIndexData);
       expect(result).toBeNull();
     });
   });
@@ -291,15 +291,15 @@ describe('stockIndexLoader', () => {
       const result = getPopularStocks(mockIndexData, 3);
 
       expect(result).toHaveLength(3);
-      expect(result[0].canonicalCode).toBe('600519.SH'); // popularity: 100
-      expect(result[1].canonicalCode).toBe('AAPL.US');   // popularity: 98
-      expect(result[2].canonicalCode).toBe('00700.HK'); // popularity: 95
+      expect(result[0].canonicalCode).toBe('2330.TW'); // popularity: 100
+      expect(result[1].canonicalCode).toBe('AAPL');   // popularity: 98
+      expect(result[2].canonicalCode).toBe('NVDA'); // popularity: 95
     });
 
     test('filters out inactive stocks', () => {
       const result = getPopularStocks(mockIndexData, 10);
 
-      // 600000.SH is inactive, should not appear
+      // 2317.TW is inactive, should not appear
       const hasInactive = result.some(item => !item.active);
       expect(hasInactive).toBe(false);
     });
@@ -378,17 +378,16 @@ describe('stockIndexLoader', () => {
     test('groups different markets correctly', () => {
       const result = groupStocksByMarket(mockIndexData);
 
-      expect(result.size).toBe(3); // CN, HK, US
-      expect(result.get('CN')).toHaveLength(2);
-      expect(result.get('HK')).toHaveLength(1);
-      expect(result.get('US')).toHaveLength(1);
+      expect(result.size).toBe(2); // TW, US
+      expect(result.get('TW')).toHaveLength(2);
+      expect(result.get('US')).toHaveLength(2);
     });
 
     test('filters out inactive stocks', () => {
       const result = groupStocksByMarket(mockIndexData);
 
-      const cnStocks = result.get('CN')!;
-      const allActive = cnStocks.every(item => item.active);
+      const twStocks = result.get('TW')!;
+      const allActive = twStocks.every(item => item.active);
       expect(allActive).toBe(true);
     });
 
@@ -420,24 +419,24 @@ describe('stockIndexLoader', () => {
     test('returns independent arrays for groups', () => {
       const result = groupStocksByMarket(mockIndexData);
 
-      const cnStocks = result.get('CN')!;
-      const originalLength = cnStocks.length;
+      const twStocks = result.get('TW')!;
+      const originalLength = twStocks.length;
 
       // Modifying returned array should not affect original data
-      cnStocks.pop();
+      twStocks.pop();
 
       const result2 = groupStocksByMarket(mockIndexData);
-      const cnStocks2 = result2.get('CN')!;
+      const twStocks2 = result2.get('TW')!;
 
-      expect(cnStocks2.length).toBe(originalLength);
+      expect(twStocks2.length).toBe(originalLength);
     });
 
     test('maintains order within groups', () => {
       const result = groupStocksByMarket(mockIndexData);
 
-      const cnStocks = result.get('CN')!;
-      expect(cnStocks[0].canonicalCode).toBe('600519.SH');
-      expect(cnStocks[1].canonicalCode).toBe('000001.SZ');
+      const twStocks = result.get('TW')!;
+      expect(twStocks[0].canonicalCode).toBe('2330.TW');
+      expect(twStocks[1].canonicalCode).toBe('2454.TW');
     });
   });
 

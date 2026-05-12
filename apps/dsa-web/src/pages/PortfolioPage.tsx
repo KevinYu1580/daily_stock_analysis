@@ -197,8 +197,8 @@ const PortfolioPage: React.FC = () => {
   const [accountForm, setAccountForm] = useState({
     name: '',
     broker: 'Demo',
-    market: 'cn' as 'cn' | 'hk' | 'us' | 'tw',
-    baseCurrency: 'CNY',
+    market: 'tw' as 'us' | 'tw',
+    baseCurrency: 'TWD',
   });
   const [costMethod, setCostMethod] = useState<PortfolioCostMethod>('fifo');
   const [snapshot, setSnapshot] = useState<PortfolioSnapshotResponse | null>(null);
@@ -659,7 +659,7 @@ const PortfolioPage: React.FC = () => {
         name,
         broker: accountForm.broker.trim() || undefined,
         market: accountForm.market,
-        baseCurrency: accountForm.baseCurrency.trim() || 'CNY',
+        baseCurrency: accountForm.baseCurrency.trim() || 'TWD',
       });
       await loadAccounts();
       setSelectedAccount(created.id);
@@ -920,19 +920,17 @@ const PortfolioPage: React.FC = () => {
             />
             <input
               className={PORTFOLIO_INPUT_CLASS}
-              placeholder="基準幣（如 CNY/USD/HKD）"
+              placeholder="基準幣（如 TWD/USD）"
               value={accountForm.baseCurrency}
               onChange={(e) => setAccountForm((prev) => ({ ...prev, baseCurrency: e.target.value.toUpperCase() }))}
             />
             <select
               className={PORTFOLIO_SELECT_CLASS}
               value={accountForm.market}
-              onChange={(e) => setAccountForm((prev) => ({ ...prev, market: e.target.value as 'cn' | 'hk' | 'us' | 'tw' }))}
+              onChange={(e) => setAccountForm((prev) => ({ ...prev, market: e.target.value as 'us' | 'tw' }))}
             >
-              <option value="cn">市場：A 股（cn）</option>
-              <option value="hk">市場：港股（hk）</option>
-              <option value="us">市場：美股（us）</option>
               <option value="tw">市場：臺股（tw）</option>
+              <option value="us">市場：美股（us）</option>
             </select>
             <button type="submit" className="btn-secondary text-sm" disabled={accountCreating}>
               {accountCreating ? '建立中...' : '建立賬戶'}

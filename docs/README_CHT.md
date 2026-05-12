@@ -1,6 +1,6 @@
 <div align="center">
 
-# 股票智能分析系統
+# 台股/美股自選股智能分析系統
 
 [![GitHub stars](https://img.shields.io/github/stars/ZhuLinsen/daily_stock_analysis?style=social)](https://github.com/ZhuLinsen/daily_stock_analysis/stargazers)
 [![CI](https://github.com/ZhuLinsen/daily_stock_analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/ZhuLinsen/daily_stock_analysis/actions/workflows/ci.yml)
@@ -13,7 +13,7 @@
   <a href="https://trendshift.io/repositories/18527" target="_blank"><img src="https://trendshift.io/api/badge/repositories/18527" alt="ZhuLinsen%2Fdaily_stock_analysis | Trendshift" width="230" /></a>&nbsp;<a href="https://hellogithub.com/repository/ZhuLinsen/daily_stock_analysis" target="_blank"><img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=6daa16e405ce46ed97b4a57706aeb29f&claim_uid=pfiJMqhR9uvDGlT&theme=neutral" alt="Featured｜HelloGitHub" width="230" /></a>
 </p>
 
-**基於 AI 大模型的 A股/港股/美股自選股智能分析系統**
+**基於 AI 大模型的台股/美股自選股智能分析系統**
 
 每日自動分析自選股 -> 生成決策儀表盤 -> 推送到 Telegram / Discord / Slack / 郵件 / 企業微信 / 飛書。
 
@@ -43,7 +43,7 @@
 | 能力 | 覆蓋內容 |
 |------|------|
 | AI 決策報告 | 核心結論、評分、趨勢、買賣點位、風險警報、催化因素、操作檢查清單 |
-| 多市場數據聚合 | A股、港股、美股、ETF；行情、K 線、技術指標、資金流、籌碼、新聞、公告和基本面 |
+| 台股 / 美股數據聚合 | 行情、K 線、技術指標、新聞、公告和基本面；台股額外覆蓋月營收與三大法人資金 |
 | Web / 桌面工作台 | 手動分析、任務進度、歷史報告、完整 Markdown、回測、持倉、配置管理、淺色 / 深色主題 |
 | Agent 策略問股 | 多輪追問，支援均線、纏論、波浪、趨勢等 11 種內建策略，覆蓋 Web/Bot/API |
 | 智能匯入與補全 | 圖片、CSV/Excel、剪貼簿匯入；股票代碼/名稱/拼音/別名補全 |
@@ -56,7 +56,7 @@
 | 類型 | 支援 |
 |------|------|
 | AI 模型 | [Anspire](https://open.anspire.cn/?share_code=QFBC0FYC)、[AIHubMix](https://aihubmix.com/?aff=CfMq)、Gemini、OpenAI 兼容、DeepSeek、通義千問、Claude、Ollama 本地模型等 |
-| 行情數據 | [TickFlow](https://tickflow.org/auth/register?ref=WDSGSPS5XC)、AkShare、Tushare、Pytdx、Baostock、YFinance、Longbridge |
+| 行情數據 | YFinance（美股 + 台股）、[FinMind](https://finmindtrade.com/)（台股 K 線/財報/月營收/三大法人） |
 | 新聞搜尋 | [Anspire](https://open.anspire.cn/?share_code=QFBC0FYC)、[SerpAPI](https://serpapi.com/baidu-search-api?utm_source=github_daily_stock_analysis)、[Tavily](https://tavily.com/)、[Bocha](https://open.bocha.cn/)、[Brave](https://brave.com/search/api/)、[MiniMax](https://platform.minimaxi.com/)、SearXNG |
 | 社交輿情 | [Stock Sentiment API](https://api.adanos.org/docs)（Reddit / X / Polymarket，僅美股，可選） |
 
@@ -108,7 +108,7 @@
 
 | Secret 名稱 | 說明 | 必填 |
 |-------------|------|:----:|
-| `STOCK_LIST` | 自選股代碼，如 `600519,hk00700,AAPL,TSLA` | ✅ |
+| `STOCK_LIST` | 自選股代碼，如 `2330,2454,AAPL,TSLA` | ✅ |
 
 **新聞源配置（推薦）**
 
@@ -116,7 +116,7 @@
 
 | Secret 名稱 | 說明 | 必填 |
 |-------------|------|:----:|
-| `ANSPIRE_API_KEYS` | [Anspire AI Search](https://aisearch.anspire.cn/)：中文內容特別優化，可增強 A 股分析效果；同一 Key 也可作為 Anspire 大模型網關兜底示例 | **推薦** |
+| `ANSPIRE_API_KEYS` | [Anspire AI Search](https://aisearch.anspire.cn/)：中文內容特別優化，可增強台股分析效果；同一 Key 也可作為 Anspire 大模型網關兜底示例 | **推薦** |
 | `SERPAPI_API_KEYS` | [SerpAPI](https://serpapi.com/baidu-search-api?utm_source=github_daily_stock_analysis)：搜尋引擎結果補強，適合即時金融新聞 | **推薦** |
 | `TAVILY_API_KEYS` | [Tavily](https://tavily.com/)：通用新聞搜尋 API | 可選 |
 | `BOCHA_API_KEYS` | [博查搜尋](https://open.bocha.cn/)：中文搜尋優化，支援 AI 摘要 | 可選 |
@@ -136,7 +136,7 @@
 
 #### 完成
 
-預設每個工作日 18:00（北京時間）自動執行，也可手動觸發。預設非交易日（含 A/H/US 節假日）不執行；強制運行、交易日檢查、斷點續傳等規則見 [完整指南](./full-guide.md#定时任务配置)。
+預設每個工作日 18:00（北京時間）自動執行，也可手動觸發。預設非交易日（含台股 / 美股節假日）不執行；強制運行、交易日檢查、斷點續傳等規則見 [完整指南](./full-guide.md#定时任务配置)。
 
 ### 方式二：本地運行 / Docker 部署
 
@@ -159,7 +159,7 @@ python main.py
 ```bash
 python main.py --debug
 python main.py --dry-run
-python main.py --stocks 600519,hk00700,AAPL
+python main.py --stocks 2330,2454,AAPL
 python main.py --market-review
 python main.py --schedule
 python main.py --serve-only
@@ -173,20 +173,20 @@ python main.py --serve-only
 
 ```markdown
 🎯 2026-02-08 決策儀表盤
-共分析3隻股票 | 🟢買入:0 🟡觀望:2 🔴賣出:1
+共分析3隻股票 | 🟢買入:1 🟡觀望:1 🔴賣出:1
 
 📊 分析結果摘要
-🟡 中鎢高新(000657): 觀望 | 評分 65 | 看多
-🟡 永鼎股份(600105): 觀望 | 評分 48 | 震盪
-🔴 新萊應材(300260): 賣出 | 評分 35 | 看空
+🟢 台積電(2330): 買入 | 評分 78 | 看多
+⚪ 聯發科(2454): 觀望 | 評分 56 | 震盪
+🔴 NVDA: 賣出 | 評分 35 | 看空
 
 🚨 風險警報:
-風險點1：主力資金出現明顯流出，需警惕短期拋壓。
-風險點2：籌碼集中度偏高，拉升阻力可能較大。
+風險點1：外資近期連續小幅賣超，需警惕短期回檔壓力。
+風險點2：股價偏離 MA5 較多，追高風險偏高。
 
 ✨ 利好催化:
-利好1：公司被市場定位為 AI 供應鏈核心標的。
-利好2：近期業績增長為股價提供基本面支撐。
+利好1：AI 加速器與高效能運算需求強勁，先進製程產能滿載。
+利好2：最新月營收同比雙位數增長，法人上修目標價。
 ```
 
 ### 大盤復盤
@@ -195,12 +195,12 @@ python main.py --serve-only
 🎯 2026-01-10 大盤復盤
 
 📊 主要指數
-- 上證指數: 3250.12 (+0.85%)
-- 深證成指: 10521.36 (+1.02%)
-- 創業板指: 2156.78 (+1.35%)
+- 台灣加權指數: 23250.12 (+0.85%)
+- 道瓊工業指數: 42180.45 (+0.32%)
+- 納斯達克綜合指數: 18650.78 (+0.91%)
 
 📈 市場概況
-上漲: 3920 | 下跌: 1349 | 漲停: 155 | 跌停: 3
+台股三大法人合計買超 | 外資買超、投信買超
 ```
 
 ## ⚙️ 配置說明

@@ -44,13 +44,13 @@ vi.mock('../../../hooks/useAutocomplete', () => ({
 
 const mockIndex: StockIndexItem[] = [
   {
-    canonicalCode: "600519.SH",
-    displayCode: "600519",
-    nameZh: "貴州茅臺",
-    pinyinFull: "guizhoumaotai",
-    pinyinAbbr: "gzmt",
-    aliases: ["茅臺"],
-    market: "CN",
+    canonicalCode: "2330.TW",
+    displayCode: "2330",
+    nameZh: "台積電",
+    pinyinFull: "taijidian",
+    pinyinAbbr: "tjd",
+    aliases: ["台積電"],
+    market: "TW",
     assetType: "stock",
     active: true,
     popularity: 100,
@@ -59,31 +59,31 @@ const mockIndex: StockIndexItem[] = [
 
 const mockSuggestions = [
   {
-    canonicalCode: "600519.SH",
-    displayCode: "600519",
-    nameZh: "貴州茅臺",
-    market: "CN",
+    canonicalCode: "2330.TW",
+    displayCode: "2330",
+    nameZh: "台積電",
+    market: "TW",
     matchType: "exact" as const,
     matchField: "code" as const,
     score: 100,
   },
 ];
 
-const hkSuggestion = {
-  canonicalCode: "00700.HK",
-  displayCode: "00700",
-  nameZh: "騰訊控股",
-  market: "HK" as const,
+const twSuggestion = {
+  canonicalCode: "2330.TW",
+  displayCode: "2330",
+  nameZh: "台積電",
+  market: "TW" as const,
   matchType: "exact" as const,
   matchField: "code" as const,
   score: 100,
 };
 
-const bseSuggestion = {
-  canonicalCode: "920493.BJ",
-  displayCode: "920493",
-  nameZh: "示例北交所股票",
-  market: "BSE" as const,
+const usSuggestion = {
+  canonicalCode: "AAPL",
+  displayCode: "AAPL",
+  nameZh: "蘋果",
+  market: "US" as const,
   matchType: "exact" as const,
   matchField: "code" as const,
   score: 100,
@@ -151,13 +151,13 @@ describe('StockAutocomplete', () => {
   it('renders the current value', () => {
     render(
       <StockAutocomplete
-        value="600519"
+        value="2330"
         onChange={mockOnChange}
         onSubmit={mockOnSubmit}
       />
     );
 
-    const input = screen.getByDisplayValue('600519');
+    const input = screen.getByDisplayValue('2330');
     expect(input).toBeInTheDocument();
   });
 
@@ -185,9 +185,9 @@ describe('StockAutocomplete', () => {
     );
 
     const input = screen.getByRole('combobox');
-    fireEvent.change(input, { target: { value: '600519' } });
+    fireEvent.change(input, { target: { value: '2330' } });
 
-    expect(mockOnChange).toHaveBeenCalledWith('600519');
+    expect(mockOnChange).toHaveBeenCalledWith('2330');
   });
 
   it('applies a custom class name', () => {
@@ -292,16 +292,16 @@ describe('StockAutocomplete', () => {
 
       render(
         <StockAutocomplete
-          value="600519"
+          value="2330"
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
         />
       );
 
-      const input = screen.getByDisplayValue('600519');
+      const input = screen.getByDisplayValue('2330');
       fireEvent.keyDown(input, { key: 'Enter' });
 
-      expect(mockOnSubmit).toHaveBeenCalledWith('600519');
+      expect(mockOnSubmit).toHaveBeenCalledWith('2330');
     });
   });
 
@@ -347,16 +347,16 @@ describe('StockAutocomplete', () => {
 
       render(
         <StockAutocomplete
-          value="6005"
+          value="233"
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
         />
       );
 
-      const input = screen.getByDisplayValue('6005');
+      const input = screen.getByDisplayValue('233');
       fireEvent.keyDown(input, { key: 'Enter' });
 
-      expect(mockOnSubmit).toHaveBeenCalledWith('6005');
+      expect(mockOnSubmit).toHaveBeenCalledWith('233');
     });
 
     it('submits the highlighted suggestion when one is explicitly selected', () => {
@@ -380,24 +380,24 @@ describe('StockAutocomplete', () => {
 
       render(
         <StockAutocomplete
-          value="6005"
+          value="233"
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
         />
       );
 
-      const input = screen.getByDisplayValue('6005');
+      const input = screen.getByDisplayValue('233');
       fireEvent.keyDown(input, { key: 'Enter' });
 
-      expect(mockOnChange).toHaveBeenCalledWith('600519');
-      expect(mockOnSubmit).toHaveBeenCalledWith('600519.SH', '貴州茅臺', 'autocomplete');
+      expect(mockOnChange).toHaveBeenCalledWith('2330');
+      expect(mockOnSubmit).toHaveBeenCalledWith('2330.TW', '台積電', 'autocomplete');
     });
 
-    it('submits the highlighted HK suggestion using the canonical .HK code', () => {
+    it('submits the highlighted TW suggestion using the canonical .TW code', () => {
       autocompleteHookImpl = () => ({
         query: '',
         setQuery: vi.fn(),
-        suggestions: [hkSuggestion],
+        suggestions: [twSuggestion],
         isOpen: true,
         highlightedIndex: 0,
         setHighlightedIndex: vi.fn(),
@@ -414,24 +414,24 @@ describe('StockAutocomplete', () => {
 
       render(
         <StockAutocomplete
-          value="00700"
+          value="2330"
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
         />
       );
 
-      const input = screen.getByDisplayValue('00700');
+      const input = screen.getByDisplayValue('2330');
       fireEvent.keyDown(input, { key: 'Enter' });
 
-      expect(mockOnChange).toHaveBeenCalledWith('00700');
-      expect(mockOnSubmit).toHaveBeenCalledWith('00700.HK', '騰訊控股', 'autocomplete');
+      expect(mockOnChange).toHaveBeenCalledWith('2330');
+      expect(mockOnSubmit).toHaveBeenCalledWith('2330.TW', '台積電', 'autocomplete');
     });
 
-    it('submits the highlighted BSE suggestion using the canonical .BJ code', () => {
+    it('submits the highlighted US suggestion using the ticker symbol', () => {
       autocompleteHookImpl = () => ({
         query: '',
         setQuery: vi.fn(),
-        suggestions: [bseSuggestion],
+        suggestions: [usSuggestion],
         isOpen: true,
         highlightedIndex: 0,
         setHighlightedIndex: vi.fn(),
@@ -448,17 +448,17 @@ describe('StockAutocomplete', () => {
 
       render(
         <StockAutocomplete
-          value="920493"
+          value="AAPL"
           onChange={mockOnChange}
           onSubmit={mockOnSubmit}
         />
       );
 
-      const input = screen.getByDisplayValue('920493');
+      const input = screen.getByDisplayValue('AAPL');
       fireEvent.keyDown(input, { key: 'Enter' });
 
-      expect(mockOnChange).toHaveBeenCalledWith('920493');
-      expect(mockOnSubmit).toHaveBeenCalledWith('920493.BJ', '示例北交所股票', 'autocomplete');
+      expect(mockOnChange).toHaveBeenCalledWith('AAPL');
+      expect(mockOnSubmit).toHaveBeenCalledWith('AAPL', '蘋果', 'autocomplete');
     });
   });
 

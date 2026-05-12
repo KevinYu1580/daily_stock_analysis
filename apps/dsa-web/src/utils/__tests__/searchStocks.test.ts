@@ -14,7 +14,7 @@ const mockIndex: StockIndexItem[] = [
     pinyinFull: "guizhoumaotai",
     pinyinAbbr: "gzmt",
     aliases: ["茅臺"],
-    market: "CN",
+    market: "TW",
     assetType: "stock",
     active: true,
     popularity: 100,
@@ -26,7 +26,7 @@ const mockIndex: StockIndexItem[] = [
     pinyinFull: "pinganyinxing",
     pinyinAbbr: "payh",
     aliases: ["平銀"],
-    market: "CN",
+    market: "TW",
     assetType: "stock",
     active: true,
     popularity: 90,
@@ -38,19 +38,19 @@ const mockIndex: StockIndexItem[] = [
     pinyinFull: "wankeＡ",
     pinyinAbbr: "wkＡ",
     aliases: [],
-    market: "CN",
+    market: "TW",
     assetType: "stock",
     active: true,
     popularity: 92,
   },
   {
-    canonicalCode: "00700.HK",
-    displayCode: "00700",
-    nameZh: "騰訊控股",
-    pinyinFull: "tengxunkonggu",
-    pinyinAbbr: "txkg",
-    aliases: ["騰訊"],
-    market: "HK",
+    canonicalCode: "2454.TW",
+    displayCode: "2454",
+    nameZh: "聯發科",
+    pinyinFull: "lianfake",
+    pinyinAbbr: "lfk",
+    aliases: ["聯發科"],
+    market: "TW",
     assetType: "stock",
     active: true,
     popularity: 95,
@@ -74,7 +74,7 @@ const mockIndex: StockIndexItem[] = [
     pinyinFull: "pufayinxing",
     pinyinAbbr: "pfyh",
     aliases: ["浦發"],
-    market: "CN",
+    market: "TW",
     assetType: "stock",
     active: false,  // Inactive
     popularity: 80,
@@ -206,11 +206,11 @@ describe('searchStocks', () => {
     expect(byPinyin[0].canonicalCode).toBe('000002.SZ');
   });
 
-  test('港股程式碼匹配', () => {
-    const results = searchStocks('00700', mockIndex);
+  test('台股程式碼匹配', () => {
+    const results = searchStocks('2454', mockIndex);
     expect(results).toHaveLength(1);
-    expect(results[0].canonicalCode).toBe('00700.HK');
-    expect(results[0].market).toBe('HK');
+    expect(results[0].canonicalCode).toBe('2454.TW');
+    expect(results[0].market).toBe('TW');
   });
 
   describe('Edge case tests', () => {
@@ -285,7 +285,7 @@ describe('searchStocks', () => {
           pinyinFull: 'test1',
           pinyinAbbr: 'ts1',
           aliases: [],
-          market: 'CN',
+          market: 'TW',
           assetType: 'stock',
           active: true,
           popularity: 50,
@@ -297,7 +297,7 @@ describe('searchStocks', () => {
           pinyinFull: 'test2',
           pinyinAbbr: 'ts2',
           aliases: [],
-          market: 'CN',
+          market: 'TW',
           assetType: 'stock',
           active: true,
           popularity: 100,
@@ -345,7 +345,7 @@ describe('searchStocks', () => {
         pinyinFull: `stock${i}`,
         pinyinAbbr: `s${i}`,
         aliases: [],
-        market: 'CN',
+        market: 'TW',
         assetType: 'stock',
         active: true,
         popularity: i % 100,

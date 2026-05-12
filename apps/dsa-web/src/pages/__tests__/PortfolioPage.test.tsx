@@ -76,7 +76,7 @@ vi.mock('recharts', () => ({
 type AccountItem = {
   id: number;
   name: string;
-  market?: 'cn' | 'hk' | 'us';
+  market?: 'us' | 'tw';
   baseCurrency?: string;
 };
 
@@ -322,7 +322,7 @@ describe('PortfolioPage FX refresh', () => {
 
   it('renders backend-provided position valuation fields and stale missing-price hint', async () => {
     getSnapshot.mockResolvedValueOnce(makeSnapshot({ fxStale: true, positions: [
-      { symbol: 'HK00700', market: 'hk', currency: 'HKD', quantity: 10, avgCost: 400, totalCost: 4000, lastPrice: 420, marketValueBase: 4200, unrealizedPnlBase: 200, unrealizedPnlPct: 5, valuationCurrency: 'HKD', priceSource: 'history_close', priceDate: '2026-03-18', priceStale: true, priceAvailable: true },
+      { symbol: 'NVDA', market: 'us', currency: 'USD', quantity: 10, avgCost: 400, totalCost: 4000, lastPrice: 420, marketValueBase: 4200, unrealizedPnlBase: 200, unrealizedPnlPct: 5, valuationCurrency: 'USD', priceSource: 'history_close', priceDate: '2026-03-18', priceStale: true, priceAvailable: true },
       { symbol: 'AAPL', market: 'us', currency: 'USD', quantity: 5, avgCost: 100, totalCost: 500, lastPrice: 0, marketValueBase: 0, unrealizedPnlBase: 0, unrealizedPnlPct: null, valuationCurrency: 'USD', priceSource: 'missing', priceDate: null, priceStale: true, priceAvailable: false },
     ] }));
 
@@ -330,22 +330,22 @@ describe('PortfolioPage FX refresh', () => {
 
     await waitForInitialLoad();
 
-    expect(await screen.findByText('HK00700')).toBeInTheDocument();
+    expect(await screen.findByText('NVDA')).toBeInTheDocument();
     expect(screen.getByText('420.0000')).toBeInTheDocument();
-    expect(screen.getByText('HKD 4,200.00')).toBeInTheDocument();
+    expect(screen.getByText('USD 4,200.00')).toBeInTheDocument();
     expect(screen.getByText('+5.00%')).toBeInTheDocument();
     expect(screen.getByText('收盤價 · 2026-03-18')).toBeInTheDocument();
     expect(screen.getByText('缺價')).toBeInTheDocument();
     expect(screen.getAllByText('--').length).toBeGreaterThanOrEqual(2);
 
-    const hkRow = screen.getByText('HK00700').closest('tr');
+    const nvdaRow = screen.getByText('NVDA').closest('tr');
     const aaplRow = screen.getByText('AAPL').closest('tr');
-    expect(hkRow).not.toBeNull();
+    expect(nvdaRow).not.toBeNull();
     expect(aaplRow).not.toBeNull();
 
-    const hkRowCells = within(hkRow as HTMLTableRowElement).getAllByRole('cell');
+    const nvdaRowCells = within(nvdaRow as HTMLTableRowElement).getAllByRole('cell');
     const aaplRowCells = within(aaplRow as HTMLTableRowElement).getAllByRole('cell');
-    expect(hkRowCells.at(-1)).toHaveClass('text-success');
+    expect(nvdaRowCells.at(-1)).toHaveClass('text-success');
     expect(aaplRowCells.at(-1)).toHaveClass('text-secondary');
   });
 

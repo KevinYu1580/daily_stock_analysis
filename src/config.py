@@ -844,8 +844,8 @@ class Config:
     schedule_run_immediately: bool = True     # 启动时是否立即执行一次
     run_immediately: bool = True              # 启动时是否立即执行一次（非定时模式）
     market_review_enabled: bool = True        # 是否启用大盘复盘
-    # 大盘复盘市场区域：cn(A股)、us(美股)、both(两者)，us 适合仅关注美股的用户
-    market_review_region: str = "cn"
+    # 大盘复盘市场区域：tw(台股)、us(美股)、both(两者)
+    market_review_region: str = "tw"
     # 交易日检查：默认启用，非交易日跳过执行；设为 false 或 --force-run 可强制执行（Issue #373）
     trading_day_check_enabled: bool = True
 
@@ -1593,7 +1593,7 @@ class Config:
             run_immediately=legacy_run_immediately,
             market_review_enabled=os.getenv('MARKET_REVIEW_ENABLED', 'true').lower() == 'true',
             market_review_region=cls._parse_market_review_region(
-                os.getenv('MARKET_REVIEW_REGION', 'cn')
+                os.getenv('MARKET_REVIEW_REGION', 'tw')
             ),
             trading_day_check_enabled=os.getenv('TRADING_DAY_CHECK_ENABLED', 'true').lower() != 'false',
             webui_enabled=os.getenv('WEBUI_ENABLED', 'false').lower() == 'true',
@@ -2133,15 +2133,16 @@ class Config:
 
     @classmethod
     def _parse_market_review_region(cls, value: str) -> str:
-        """解析大盘复盘市场区域，非法值记录警告后回退为 cn"""
+        """解析大盘复盘市场区域，非法值记录警告后回退为 tw"""
         import logging
-        v = (value or 'cn').strip().lower()
-        if v in ('cn', 'us', 'hk', 'both'):
+        v = (value or 'tw').strip().lower()
+        if v in ('tw', 'us', 'both'):
             return v
+        # 兼容旧配置：cn / hk 已不再支持，回退为 tw
         logging.getLogger(__name__).warning(
-            f"MARKET_REVIEW_REGION 配置值 '{value}' 无效，已回退为默认值 'cn'（合法值：cn / hk / us / both）"
+            f"MARKET_REVIEW_REGION 配置值 '{value}' 无效或已不再支持，已回退为默认值 'tw'（合法值：tw / us / both）"
         )
-        return 'cn'
+        return 'tw'
 
     @classmethod
     def _parse_md2img_engine(cls, value: str) -> str:

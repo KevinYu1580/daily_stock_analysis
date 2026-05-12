@@ -16,7 +16,7 @@ const settingsHelpZhCN: SettingsHelpMap = {
   'settings.base.STOCK_LIST': {
     title: '自選股列表',
     summary: '配置需要分析的股票程式碼列表，是手動分析、定時任務和通知報告的基礎輸入。',
-    usage: '多個股票程式碼使用英文逗號分隔。A 股可直接填寫 6 位程式碼，港股可使用 hk 字首，美股可填寫 ticker。',
+    usage: '多個股票程式碼使用英文逗號分隔。臺股可填寫 4 位數程式碼（或加 .TW 後綴），美股可填寫 ticker。',
     valueNotes: [
       '定時模式每次觸發前會重新讀取當前儲存的 STOCK_LIST。',
       '如果命令列臨時傳入 --stocks，隻影響本次手動執行，不會鎖定後續計劃任務。',
@@ -105,7 +105,7 @@ const settingsHelpEnUS: SettingsHelpMap = {
   'settings.base.STOCK_LIST': {
     title: 'Watchlist',
     summary: 'Defines the stock codes used by analysis jobs and notification reports.',
-    usage: 'Separate symbols with commas. A-shares can use six-digit codes, HK stocks can use the hk prefix, and US stocks can use ticker symbols.',
+    usage: 'Separate symbols with commas. Taiwan stocks can use four-digit codes (or a .TW suffix), and US stocks can use ticker symbols.',
     valueNotes: [
       'Scheduled mode rereads the saved STOCK_LIST before each run.',
       'A temporary --stocks argument only affects that manual run.',

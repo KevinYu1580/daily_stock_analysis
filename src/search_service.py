@@ -2225,18 +2225,10 @@ class SearchService:
     
     @staticmethod
     def _is_foreign_stock(stock_code: str) -> bool:
-        """判断是否为港股或美股"""
+        """判断是否为美股（非中文资讯语境）。"""
         code = stock_code.strip()
         # 美股：1-5个大写字母，可能包含点（如 BRK.B）
-        if SearchService._US_STOCK_RE.match(code):
-            return True
-        # 港股：带 hk 前缀或 5位纯数字
-        lower = code.lower()
-        if lower.startswith('hk'):
-            return True
-        if code.isdigit() and len(code) == 5:
-            return True
-        return False
+        return bool(SearchService._US_STOCK_RE.match(code))
 
     @staticmethod
     def _is_taiwan_stock(stock_code: str) -> bool:
@@ -2268,20 +2260,19 @@ class SearchService:
         stock_name: str,
         focus_keywords: Optional[List[str]] = None,
     ) -> bool:
-        """A 股或中文名称/关键词场景下优先中文资讯。
+        """台股或中文名称/关键词场景下优先中文（繁中）资讯。
 
         Only returns True when there is a positive Chinese signal:
-        Chinese characters in keywords/stock_name, or a 6-digit A-stock code.
-        Avoids false positives for non-foreign but English contexts like
+        Chinese characters in keywords/stock_name, or a Taiwan stock/index code.
+        Avoids false positives for English contexts like
         ``stock_code="market", stock_name="US market"``.
         """
         if any(cls._contains_chinese_text(keyword) for keyword in (focus_keywords or [])):
             return True
         if cls._contains_chinese_text(stock_name):
             return True
-        # Positive A-stock identification: 6-digit numeric codes (e.g. 600519)
-        code = (stock_code or "").strip()
-        return code.isdigit() and len(code) == 6
+        # Positive Taiwan-stock identification (4-digit / tw-prefixed / .TW / TAIEX etc.)
+        return cls._is_taiwan_stock(stock_code)
 
     @classmethod
     def _is_chinese_news_result(cls, item: SearchResult) -> bool:
@@ -2344,14 +2335,12 @@ class SearchService:
     ) -> Dict[str, str]:
         """Resolve Brave locale hints without forcing US bias onto non-US symbols."""
         if prefer_chinese:
-            return {"search_lang": "zh-hans", "country": "CN"}
+            return {"search_lang": "zh-hant", "country": "TW"}
         if cls._is_us_stock(stock_code):
             return {"search_lang": "en", "country": "US"}
         return {}
 
-    # A-share ETF code prefixes (Shanghai 51/52/56/58, Shenzhen 15/16/18)
-    _A_ETF_PREFIXES = ('51', '52', '56', '58', '15', '16', '18')
-    _ETF_NAME_KEYWORDS = ('ETF', 'FUND', 'TRUST', 'INDEX', 'TRACKER', 'UNIT')  # US/HK ETF name hints
+    _ETF_NAME_KEYWORDS = ('ETF', 'FUND', 'TRUST', 'INDEX', 'TRACKER', 'UNIT')  # US/TW ETF name hints
 
     @staticmethod
     def is_index_or_etf(stock_code: str, stock_name: str) -> bool:
@@ -2362,16 +2351,15 @@ class SearchService:
         code = (stock_code or '').strip().split('.')[0]
         if not code:
             return False
-        # A-share ETF
-        if code.isdigit() and len(code) == 6 and code.startswith(SearchService._A_ETF_PREFIXES):
-            return True
         # US index (SPX, DJI, IXIC etc.)
         if is_us_index_code(code):
             return True
-        # US/HK ETF: foreign symbol + name contains fund-like keywords
-        if SearchService._is_foreign_stock(code):
-            name_upper = (stock_name or '').upper()
-            return any(kw in name_upper for kw in SearchService._ETF_NAME_KEYWORDS)
+        # Taiwan index (TWII / TWO / TW50)
+        if code.upper() in {'TWII', 'TWO', 'TW50'}:
+            return True
+        name_upper = (stock_name or '').upper()
+        if any(kw in name_upper for kw in SearchService._ETF_NAME_KEYWORDS):
+            return True
         return False
 
     @property

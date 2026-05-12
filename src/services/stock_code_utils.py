@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Shared stock code utilities.
+Shared stock code utilities (台股 + 美股).
+
+支援代碼格式：
+- 台股：2330、tw2330、tw00878（5 碼 ETF）、2330.TW、00878.TWO
+- 台股指數：TWII、TWO、TW50
+- 美股 ticker：AAPL、TSLA、BRK.B、AAPL.US
 """
 
 from __future__ import annotations
@@ -8,95 +13,48 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-from data_provider.base import is_bse_code
-
-
-# Known exchange prefixes (case-insensitive) and the digit lengths they accept.
-# e.g. SH600519 -> 600519, HK00700 -> 00700
-_PREFIX_DIGIT_LENS: dict = {
-    "SH": (6,),
-    "SZ": (6,),
-    "SS": (6,),
-    "BJ": (6,),
-    "HK": (1, 2, 3, 4, 5),
-}
-
-_SUFFIX_DIGIT_LENS: dict = {
-    ".SH": (6,),
-    ".SZ": (6,),
-    ".SS": (6,),
-    ".BJ": (6,),
-    ".HK": (1, 2, 3, 4, 5),
-}
-
-
-def _valid_exchange_code(exchange: str, base: str, digit_lens: tuple[int, ...]) -> bool:
-    if not (base.isdigit() and len(base) in digit_lens):
-        return False
-    if exchange == "BJ":
-        return is_bse_code(base)
-    return True
-
-
-def _strip_exchange_prefix(text: str) -> Optional[str]:
-    """Strip leading exchange prefix (SH/SZ/HK etc.) and return the bare digits, or None."""
-    for prefix, digit_lens in _PREFIX_DIGIT_LENS.items():
-        if text.startswith(prefix):
-            base = text[len(prefix):]
-            if _valid_exchange_code(prefix, base, digit_lens):
-                return base.zfill(5) if prefix == "HK" else base
-    return None
-
-
-def _strip_exchange_suffix(text: str) -> Optional[str]:
-    """Strip exchange suffix (.SH/.SZ/.SS/.HK) and return normalized bare digits, or None."""
-    for suffix, digit_lens in _SUFFIX_DIGIT_LENS.items():
-        if text.endswith(suffix):
-            base = text[: -len(suffix)].strip()
-            exchange = suffix.lstrip(".")
-            if _valid_exchange_code(exchange, base, digit_lens):
-                return base.zfill(5) if suffix == ".HK" else base
-    return None
+_TW_BARE_RE = re.compile(r"^\d{4}$")              # 純 4 碼數字（一般股票）
+_TW_PREFIX_RE = re.compile(r"^TW(\d{4,5})$")      # tw 前綴 + 4~5 碼（含 ETF）
+_TW_SUFFIX_RE = re.compile(r"^(\d{4,5})\.TWO?$")  # .TW / .TWO 後綴
+_US_TICKER_RE = re.compile(r"^[A-Z]{1,5}(?:\.(?:US|[A-Z]))?$")
+_TW_INDEX = {"TWII", "TWO", "TW50"}
 
 
 def is_code_like(value: str) -> bool:
-    """Check if string looks like a stock code (5-6 digits, 1-5 letters, or prefixed code)."""
-    text = value.strip().upper()
-    if not text:
+    """是否看起來像受支援的股票/指數代碼（台股 / 美股）。"""
+    if not value:
         return False
-    if text.isdigit() and len(text) in (5, 6):
+    text = value.strip().upper()
+    if text in _TW_INDEX:
         return True
-    if _strip_exchange_suffix(text) is not None:
-        return True
-    if re.match(r"^[A-Z]{1,5}(?:\.(?:US|[A-Z]))?$", text):
-        return True
-    # Support exchange-prefixed codes: SH600519, SZ000001, BJ920493, HK00700
-    if _strip_exchange_prefix(text) is not None:
-        return True
-    return False
+    return normalize_code(text) is not None
 
 
 def normalize_code(raw: str) -> Optional[str]:
-    """Normalize and validate a single stock code.
+    """正規化並驗證單一股票代碼（台股 / 美股）。
 
-    Supports:
-    - Plain digit codes: 600519, 00700
-    - Suffix format: 600519.SH, 600519.SZ, 920493.BJ, 00700.HK
-    - Prefix format: SH600519, SZ000001, BJ920493, HK00700 (case-insensitive)
-    - US ticker symbols: AAPL, TSLA
+    回傳：
+    - 台股：一律回傳純數字代碼（2330、00878）
+    - 台股指數：原樣回傳（TWII / TWO / TW50）
+    - 美股：原樣回傳 ticker（AAPL、BRK.B）
+    - 無法識別：None
     """
+    if not raw:
+        return None
     text = raw.strip().upper()
     if not text:
         return None
-    if text.isdigit() and len(text) in (5, 6):
+
+    m = _TW_SUFFIX_RE.match(text)
+    if m:
+        return m.group(1)
+    m = _TW_PREFIX_RE.match(text)
+    if m:
+        return m.group(1)
+    if _TW_BARE_RE.match(text):
         return text
-    if re.match(r"^[A-Z]{1,5}(?:\.(?:US|[A-Z]))?$", text):
+    if text in _TW_INDEX:
         return text
-    stripped_suffix = _strip_exchange_suffix(text)
-    if stripped_suffix is not None:
-        return stripped_suffix
-    # Support exchange-prefixed codes: SH600519 -> 600519, BJ920493 -> 920493
-    stripped = _strip_exchange_prefix(text)
-    if stripped is not None:
-        return stripped
+    if _US_TICKER_RE.match(text):
+        return text
     return None

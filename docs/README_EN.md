@@ -1,6 +1,6 @@
 <div align="center">
 
-# AI Stock Analysis System
+# Taiwan / US Stock Analysis System
 
 [![GitHub stars](https://img.shields.io/github/stars/ZhuLinsen/daily_stock_analysis?style=social)](https://github.com/ZhuLinsen/daily_stock_analysis/stargazers)
 [![CI](https://github.com/ZhuLinsen/daily_stock_analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/ZhuLinsen/daily_stock_analysis/actions/workflows/ci.yml)
@@ -13,7 +13,7 @@
   <a href="https://trendshift.io/repositories/18527" target="_blank"><img src="https://trendshift.io/api/badge/repositories/18527" alt="ZhuLinsen%2Fdaily_stock_analysis | Trendshift" width="230" /></a>&nbsp;<a href="https://hellogithub.com/repository/ZhuLinsen/daily_stock_analysis" target="_blank"><img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=6daa16e405ce46ed97b4a57706aeb29f&claim_uid=pfiJMqhR9uvDGlT&theme=neutral" alt="Featured｜HelloGitHub" width="230" /></a>
 </p>
 
-**AI-powered stock analysis system for A-shares / Hong Kong / US stocks**
+**AI-powered watchlist stock analysis system for Taiwan (TW) and US stocks**
 
 Analyze your watchlist daily -> generate a decision dashboard -> push to Telegram / Discord / Slack / Email / WeChat Work / Feishu.
 
@@ -43,7 +43,7 @@ English | [简体中文](../README.md) | [繁體中文](README_CHT.md)
 | Capability | Coverage |
 |------------|----------|
 | AI decision reports | Core conclusion, score, trend, entry/exit levels, risk alerts, catalysts, and action checklist |
-| Multi-market data | A-shares, Hong Kong, US stocks, ETFs; quotes, K-lines, technicals, capital flow, chips, news, announcements, and fundamentals |
+| Taiwan / US data | Quotes, K-lines, technicals, news, announcements, and fundamentals; Taiwan also covers monthly revenue and institutional-investor flows |
 | Web / desktop workspace | Manual analysis, task progress, history, full Markdown reports, backtest, portfolio, settings, and light/dark themes |
 | Agent strategy chat | Multi-turn Q&A with 11 built-in strategies across Web/Bot/API |
 | Smart import & autocomplete | Image, CSV/Excel, clipboard import; code/name/pinyin/alias autocomplete |
@@ -56,7 +56,7 @@ English | [简体中文](../README.md) | [繁體中文](README_CHT.md)
 | Type | Supported |
 |------|-----------|
 | AI Models | [Anspire](https://open.anspire.cn/?share_code=QFBC0FYC), [AIHubMix](https://aihubmix.com/?aff=CfMq), Gemini, OpenAI-compatible providers, DeepSeek, Qwen, Claude, Ollama |
-| Market Data | [TickFlow](https://tickflow.org/auth/register?ref=WDSGSPS5XC), AkShare, Tushare, Pytdx, Baostock, YFinance, Longbridge |
+| Market Data | YFinance (US + Taiwan), [FinMind](https://finmindtrade.com/) (Taiwan K-lines / financials / monthly revenue / institutional investors) |
 | News Search | [Anspire](https://open.anspire.cn/?share_code=QFBC0FYC), [SerpAPI](https://serpapi.com/baidu-search-api?utm_source=github_daily_stock_analysis), [Tavily](https://tavily.com/), [Bocha](https://open.bocha.cn/), [Brave](https://brave.com/search/api/), [MiniMax](https://platform.minimaxi.com/), SearXNG |
 | Social Sentiment | [Stock Sentiment API](https://api.adanos.org/docs) for Reddit / X / Polymarket, US stocks only |
 
@@ -108,7 +108,7 @@ More channels, signatures, email groups, and Markdown-to-image settings are in [
 
 | Secret Name | Description | Required |
 |-------------|-------------|:--------:|
-| `STOCK_LIST` | Watchlist codes, such as `600519,hk00700,AAPL,TSLA` | ✅ |
+| `STOCK_LIST` | Watchlist codes, such as `2330,2454,AAPL,TSLA` | ✅ |
 
 **News sources (recommended)**
 
@@ -116,7 +116,7 @@ News search strongly improves sentiment, announcements, events, and catalyst qua
 
 | Secret Name | Description | Required |
 |-------------|-------------|:--------:|
-| `ANSPIRE_API_KEYS` | [Anspire AI Search](https://aisearch.anspire.cn/), optimized for Chinese content and A-share analysis; the same key can also be used for Anspire LLM fallback examples | **Recommended** |
+| `ANSPIRE_API_KEYS` | [Anspire AI Search](https://aisearch.anspire.cn/), optimized for Chinese content and Taiwan-stock analysis; the same key can also be used for Anspire LLM fallback examples | **Recommended** |
 | `SERPAPI_API_KEYS` | [SerpAPI](https://serpapi.com/baidu-search-api?utm_source=github_daily_stock_analysis), search-engine results for realtime financial news | **Recommended** |
 | `TAVILY_API_KEYS` | [Tavily](https://tavily.com/), general news search API | Optional |
 | `BOCHA_API_KEYS` | [Bocha](https://open.bocha.cn/), Chinese search with AI summaries | Optional |
@@ -136,7 +136,7 @@ Open the `Actions` tab and click `I understand my workflows, go ahead and enable
 
 #### Done
 
-By default, the workflow runs every weekday at 18:00 Beijing time and skips non-trading days. Forced runs, trading-day checks, and resume rules are covered in the [Full Guide](./full-guide_EN.md#scheduled-task-configuration).
+By default, the workflow runs every weekday at 18:00 Beijing time and skips non-trading days (Taiwan / US market holidays). Forced runs, trading-day checks, and resume rules are covered in the [Full Guide](./full-guide_EN.md#scheduled-task-configuration).
 
 ### Option 2: Local / Docker Deployment
 
@@ -159,7 +159,7 @@ Common commands:
 ```bash
 python main.py --debug
 python main.py --dry-run
-python main.py --stocks 600519,hk00700,AAPL
+python main.py --stocks 2330,2454,AAPL
 python main.py --market-review
 python main.py --schedule
 python main.py --serve-only
@@ -173,20 +173,20 @@ python main.py --serve-only
 
 ```markdown
 🎯 2026-02-08 Decision Dashboard
-Analyzed 3 stocks | 🟢 Buy:0 🟡 Watch:2 🔴 Sell:1
+Analyzed 3 stocks | 🟢 Buy:1 🟡 Watch:1 🔴 Sell:1
 
 📊 Summary
-🟡 000657: Watch | Score 65 | Bullish
-🟡 600105: Watch | Score 48 | Range-bound
-🔴 300260: Sell | Score 35 | Bearish
+🟢 2330 (TSMC): Buy | Score 78 | Bullish
+⚪ 2454 (MediaTek): Watch | Score 56 | Range-bound
+🔴 NVDA: Sell | Score 35 | Bearish
 
 🚨 Risk Alerts:
-Risk 1: Main-force funds showed notable outflow.
-Risk 2: Chip concentration suggests short-term resistance.
+Risk 1: Foreign investors net-sold recently; watch for short-term pullback.
+Risk 2: Price is stretched above MA5; chasing risk is elevated.
 
 ✨ Positive Catalysts:
-Catalyst 1: AI-server supply-chain exposure remains a market focus.
-Catalyst 2: Recent earnings growth provides fundamental support.
+Catalyst 1: Strong AI accelerator / HPC demand keeps advanced-node capacity full.
+Catalyst 2: Latest monthly revenue grew double digits; analysts raised targets.
 ```
 
 ### Market Review
@@ -195,12 +195,12 @@ Catalyst 2: Recent earnings growth provides fundamental support.
 🎯 2026-01-10 Market Review
 
 📊 Major Indices
-- SSE Composite: 3250.12 (+0.85%)
-- SZSE Component: 10521.36 (+1.02%)
-- ChiNext: 2156.78 (+1.35%)
+- TAIEX (Taiwan Weighted): 23250.12 (+0.85%)
+- Dow Jones Industrial: 42180.45 (+0.32%)
+- NASDAQ Composite: 18650.78 (+0.91%)
 
 📈 Market Breadth
-Up: 3920 | Down: 1349 | Limit up: 155 | Limit down: 3
+Taiwan institutional investors: net buy | Foreign + investment-trust net buy
 ```
 
 ## ⚙️ Configuration
